@@ -26,6 +26,7 @@ options:
   gesture_stable_duration: 0.5
   gesture_cooldown: 2.0
   rtsp_reconnect_delay: 5
+  log_level: "INFO"
 schema:
   rtsp_url: str
   mqtt_broker: str
@@ -39,3 +40,4 @@ schema:
   gesture_stable_duration: float(0.1,5.0)?
   gesture_cooldown: float(0.5,10.0)?
   rtsp_reconnect_delay: int(1,60)?
+  log_level: list(DEBUG|INFO|WARNING|ERROR)?

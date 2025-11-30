@@ -19,6 +19,7 @@ export GESTURE_CONFIDENCE_THRESHOLD=$(jq -r '.gesture_confidence_threshold' $CON
 export GESTURE_STABLE_DURATION=$(jq -r '.gesture_stable_duration' $CONFIG_PATH)
 export GESTURE_COOLDOWN=$(jq -r '.gesture_cooldown' $CONFIG_PATH)
 export RTSP_RECONNECT_DELAY=$(jq -r '.rtsp_reconnect_delay' $CONFIG_PATH)
+export LOG_LEVEL=$(jq -r '.log_level // "INFO"' $CONFIG_PATH)
 
 echo "[INFO] Configuration loaded:"
 echo "[INFO]   MQTT Broker: ${MQTT_BROKER}:${MQTT_PORT}"

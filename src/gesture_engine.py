@@ -1,12 +1,16 @@
+import os
+
+# CRITICAL: Disable GPU BEFORE importing mediapipe
+os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
+
 import cv2
 import mediapipe as mp
 import numpy as np
 from typing import Optional, Tuple
 import config
-import os
+import logging
 
-# Disable GPU for MediaPipe (Docker container doesn't have GPU access)
-os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
+logger = logging.getLogger(__name__)
 
 
 class GestureEngine:
@@ -46,22 +50,29 @@ class GestureEngine:
             Tuple of (gesture_name, confidence)
             gesture_name is None if no hand detected
         """
-        # Convert BGR to RGB for MediaPipe
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        # Process the frame
-        results = self.hands.process(rgb_frame)
-        
-        if not results.multi_hand_landmarks:
+        try:
+            # Convert BGR to RGB for MediaPipe
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Process the frame
+            results = self.hands.process(rgb_frame)
+            
+            if not results.multi_hand_landmarks:
+                logger.debug("No hand detected in frame")
+                return None, 0.0
+            
+            # Get the first hand landmarks
+            hand_landmarks = results.multi_hand_landmarks[0]
+            
+            # Recognize gesture based on landmarks
+            gesture, confidence = self._recognize_gesture(hand_landmarks)
+            
+            logger.debug(f"Detected gesture: {gesture} (confidence: {confidence:.2f})")
+            return gesture, confidence
+            
+        except Exception as e:
+            logger.error(f"Error processing frame: {e}")
             return None, 0.0
-        
-        # Get the first hand landmarks
-        hand_landmarks = results.multi_hand_landmarks[0]
-        
-        # Recognize gesture based on landmarks
-        gesture, confidence = self._recognize_gesture(hand_landmarks)
-        
-        return gesture, confidence
     
     def _recognize_gesture(self, landmarks) -> Tuple[str, float]:
         """

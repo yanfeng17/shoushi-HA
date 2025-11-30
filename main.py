@@ -15,8 +15,10 @@ os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp|fflags;nobuffe
 os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
 
 # Configure logging
+# Set to DEBUG to see detailed gesture detection info
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -295,11 +297,19 @@ def main():
             # Process frame with gesture engine
             gesture, confidence = gesture_engine.process_frame(frame)
             
+            # Log detection for debugging (every 50 frames to avoid spam)
+            if video_processor.frame_count % 50 == 0:
+                if gesture:
+                    logger.info(f"[Frame {video_processor.frame_count}] Hand detected: {gesture} (confidence: {confidence:.2f})")
+                else:
+                    logger.info(f"[Frame {video_processor.frame_count}] No hand detected")
+            
             # Add detection to buffer and check if should trigger
             triggered_gesture = gesture_buffer.add_detection(gesture, confidence)
             
             # If gesture should be triggered, publish to MQTT
             if triggered_gesture:
+                logger.info(f"✓ Gesture TRIGGERED and published: {triggered_gesture} (confidence: {confidence:.2f})")
                 mqtt_client.publish_gesture(triggered_gesture, confidence)
             
             # Small sleep to prevent CPU overload
