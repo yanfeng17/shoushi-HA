@@ -19,9 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libswscale6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install bashio for Home Assistant integration
-RUN pip3 install --no-cache-dir bashio
-
 # Set working directory
 WORKDIR /app
 

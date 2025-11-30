@@ -1,29 +1,29 @@
-#!/usr/bin/env bashio
-
+#!/bin/bash
 set -e
 
-bashio::log.info "Starting MediaPipe Gesture Control addon..."
+echo "[INFO] Starting MediaPipe Gesture Control addon..."
 
-# Read configuration from Home Assistant options
+# Read configuration from Home Assistant options.json
 CONFIG_PATH=/data/options.json
 
-export RTSP_URL=$(bashio::config 'rtsp_url')
-export MQTT_BROKER=$(bashio::config 'mqtt_broker')
-export MQTT_PORT=$(bashio::config 'mqtt_port')
-export MQTT_USERNAME=$(bashio::config 'mqtt_username')
-export MQTT_PASSWORD=$(bashio::config 'mqtt_password')
-export FRAME_WIDTH=$(bashio::config 'frame_width')
-export FRAME_HEIGHT=$(bashio::config 'frame_height')
-export TARGET_FPS=$(bashio::config 'target_fps')
-export GESTURE_CONFIDENCE_THRESHOLD=$(bashio::config 'gesture_confidence_threshold')
-export GESTURE_STABLE_DURATION=$(bashio::config 'gesture_stable_duration')
-export GESTURE_COOLDOWN=$(bashio::config 'gesture_cooldown')
-export RTSP_RECONNECT_DELAY=$(bashio::config 'rtsp_reconnect_delay')
+# Read configuration values using jq
+export RTSP_URL=$(jq -r '.rtsp_url' $CONFIG_PATH)
+export MQTT_BROKER=$(jq -r '.mqtt_broker' $CONFIG_PATH)
+export MQTT_PORT=$(jq -r '.mqtt_port' $CONFIG_PATH)
+export MQTT_USERNAME=$(jq -r '.mqtt_username // ""' $CONFIG_PATH)
+export MQTT_PASSWORD=$(jq -r '.mqtt_password // ""' $CONFIG_PATH)
+export FRAME_WIDTH=$(jq -r '.frame_width' $CONFIG_PATH)
+export FRAME_HEIGHT=$(jq -r '.frame_height' $CONFIG_PATH)
+export TARGET_FPS=$(jq -r '.target_fps' $CONFIG_PATH)
+export GESTURE_CONFIDENCE_THRESHOLD=$(jq -r '.gesture_confidence_threshold' $CONFIG_PATH)
+export GESTURE_STABLE_DURATION=$(jq -r '.gesture_stable_duration' $CONFIG_PATH)
+export GESTURE_COOLDOWN=$(jq -r '.gesture_cooldown' $CONFIG_PATH)
+export RTSP_RECONNECT_DELAY=$(jq -r '.rtsp_reconnect_delay' $CONFIG_PATH)
 
-bashio::log.info "Configuration loaded:"
-bashio::log.info "  MQTT Broker: ${MQTT_BROKER}:${MQTT_PORT}"
-bashio::log.info "  Frame Size: ${FRAME_WIDTH}x${FRAME_HEIGHT}"
-bashio::log.info "  Target FPS: ${TARGET_FPS}"
+echo "[INFO] Configuration loaded:"
+echo "[INFO]   MQTT Broker: ${MQTT_BROKER}:${MQTT_PORT}"
+echo "[INFO]   Frame Size: ${FRAME_WIDTH}x${FRAME_HEIGHT}"
+echo "[INFO]   Target FPS: ${TARGET_FPS}"
 
 # Start the Python application
 cd /app
