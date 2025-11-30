@@ -102,47 +102,41 @@ class GestureBuffer:
     
     def _is_gesture_stable(self, gesture: str, current_time: float) -> bool:
         """
-        Check if a gesture has been consistently detected for the stable duration.
+        Check if a gesture has been consistently detected.
+        Uses count-based approach instead of strict time window.
         """
-        if len(self.gesture_history) < 2:
-            logger.debug(f"Not stable: history too short ({len(self.gesture_history)} detections)")
+        # Minimum consecutive detections required (adjust based on actual FPS)
+        MIN_DETECTIONS = 3
+        
+        if len(self.gesture_history) < MIN_DETECTIONS:
             return False
         
-        # Get all detections within the stable duration window
-        stable_window_start = current_time - self.stable_duration
-        recent_detections = [
-            d for d in self.gesture_history
-            if d['timestamp'] >= stable_window_start
-        ]
+        # Check last N detections - are they all the same gesture?
+        recent_detections = list(self.gesture_history)[-MIN_DETECTIONS:]
         
-        if not recent_detections:
-            logger.warning(f"Not stable: no recent detections in {self.stable_duration}s window")
-            return False
-        
-        # Check if all recent detections are the same gesture with high confidence
         all_same_gesture = all(
             d['gesture'] == gesture and d['confidence'] >= self.confidence_threshold
             for d in recent_detections
         )
         
-        # Check if we have detections spanning the full duration
-        time_span = current_time - recent_detections[0]['timestamp']
-        has_sufficient_duration = time_span >= self.stable_duration
+        if not all_same_gesture:
+            return False
         
-        # Debug logging
-        logger.info(f"Stability check for {gesture}: "
-                   f"recent_count={len(recent_detections)}, "
-                   f"all_same={all_same_gesture}, "
-                   f"time_span={time_span:.2f}s, "
-                   f"required={self.stable_duration}s, "
-                   f"sufficient={has_sufficient_duration}")
+        # Calculate time span for logging
+        time_span = recent_detections[-1]['timestamp'] - recent_detections[0]['timestamp']
         
-        if all_same_gesture and has_sufficient_duration:
+        # Debug logging (only occasionally to reduce spam)
+        if len(self.gesture_history) % 10 == 0:
+            logger.info(f"Stability check for {gesture}: "
+                       f"last_{MIN_DETECTIONS}={all_same_gesture}, "
+                       f"time_span={time_span:.2f}s, "
+                       f"buffer_size={len(self.gesture_history)}")
+        
+        if all_same_gesture:
             self.current_stable_gesture = gesture
-            logger.info(f"✓ Gesture {gesture} is STABLE and ready to trigger")
+            logger.info(f"✓ Gesture {gesture} is STABLE (last {MIN_DETECTIONS} detections consistent)")
             return True
         
-        logger.info(f"✗ Gesture {gesture} not stable: same={all_same_gesture}, duration_ok={has_sufficient_duration}")
         return False
     
     def _can_trigger(self, gesture: str, current_time: float) -> bool:
@@ -288,8 +282,8 @@ class VideoStreamProcessor:
 def main():
     """Main application loop."""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.4 (DEBUG)")
-    logger.info("║ Build: 2025-11-30 17:20")
+    logger.info("║ MediaPipe Gesture Control v1.0.5")
+    logger.info("║ Build: 2025-11-30 17:30 - COUNT-BASED TRIGGER")
     logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
