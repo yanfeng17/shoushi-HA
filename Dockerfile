@@ -1,33 +1,26 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.11-alpine3.19
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian-python:3.11-bookworm
 FROM ${BUILD_FROM}
 
 # Install system dependencies required by OpenCV and MediaPipe
-RUN apk add --no-cache \
-    libstdc++ \
-    libgomp \
-    libgcc \
-    && apk add --no-cache --virtual .build-deps \
-    gcc \
-    g++ \
-    make \
-    musl-dev \
-    linux-headers
-
-# Install OpenCV dependencies
-RUN apk add --no-cache \
-    ffmpeg-libs \
-    glib \
-    libsm \
-    libxext \
-    libxrender
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    libgfortran5 \
+    libavcodec59 \
+    libavformat59 \
+    libswscale6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt \
-    && apk del .build-deps
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY src/ /app/src/
