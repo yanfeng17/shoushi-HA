@@ -1,5 +1,5 @@
 name: "MediaPipe Gesture Control"
-version: "1.0.5"
+version: "1.0.6"
 slug: mediapipe_gesture_control
 description: "Real-time hand gesture recognition using MediaPipe with MQTT integration"
 url: "https://github.com/yanfeng17/shoushi-HA"
@@ -19,14 +19,15 @@ options:
   mqtt_port: 1883
   mqtt_username: ""
   mqtt_password: ""
-  frame_width: 640
-  frame_height: 480
-  target_fps: 10
-  gesture_confidence_threshold: 0.7
+  frame_width: 320
+  frame_height: 240
+  target_fps: 15
+  gesture_confidence_threshold: 0.65
   gesture_stable_duration: 0.3
-  gesture_cooldown: 2.0
+  gesture_cooldown: 1.5
   rtsp_reconnect_delay: 5
   log_level: "INFO"
+  skip_frames: 1
 schema:
   rtsp_url: str
   mqtt_broker: str

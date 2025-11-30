@@ -105,8 +105,8 @@ class GestureBuffer:
         Check if a gesture has been consistently detected.
         Uses count-based approach instead of strict time window.
         """
-        # Minimum consecutive detections required (adjust based on actual FPS)
-        MIN_DETECTIONS = 3
+        # Minimum consecutive detections required (reduced for faster response)
+        MIN_DETECTIONS = 2
         
         if len(self.gesture_history) < MIN_DETECTIONS:
             return False
@@ -170,6 +170,7 @@ class VideoStreamProcessor:
         self.rtsp_url = rtsp_url
         self.cap: Optional[cv2.VideoCapture] = None
         self.frame_count = 0
+        self.processed_frame_count = 0
         self.last_frame_time = 0
         self.target_frame_interval = 1.0 / config.TARGET_FPS
     
@@ -234,10 +235,8 @@ class VideoStreamProcessor:
         if self.cap is None or not self.cap.isOpened():
             return None
         
-        # Frame rate limiting
+        # Minimal frame rate limiting (removed strict timing to reduce latency)
         current_time = time.time()
-        if current_time - self.last_frame_time < self.target_frame_interval:
-            return None
         
         try:
             # Try to read frame, allow up to 3 retries for decode errors
@@ -282,8 +281,8 @@ class VideoStreamProcessor:
 def main():
     """Main application loop."""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.5")
-    logger.info("║ Build: 2025-11-30 17:30 - COUNT-BASED TRIGGER")
+    logger.info("║ MediaPipe Gesture Control v1.0.6")
+    logger.info("║ Build: 2025-11-30 17:45 - OPTIMIZED FOR SPEED")
     logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
@@ -348,13 +347,13 @@ def main():
             # Process frame with gesture engine
             gesture, confidence = gesture_engine.process_frame(frame)
             
-            # Log detection for debugging (every 30 frames to see pattern better)
-            if video_processor.frame_count % 30 == 0 or video_processor.frame_count == 1:
+            # Log detection for debugging (every 20 processed frames)
+            if video_processor.processed_frame_count % 20 == 0 or video_processor.processed_frame_count == 1:
                 if gesture:
                     history_len = len(gesture_buffer.gesture_history)
-                    logger.info(f"[Frame {video_processor.frame_count}] Hand detected: {gesture} (confidence: {confidence:.2f}) [buffer: {history_len}]")
+                    logger.info(f"[Processed {video_processor.processed_frame_count}] Hand detected: {gesture} (confidence: {confidence:.2f}) [buffer: {history_len}]")
                 else:
-                    logger.info(f"[Frame {video_processor.frame_count}] No hand detected")
+                    logger.info(f"[Processed {video_processor.processed_frame_count}] No hand detected")
             
             # Add detection to buffer and check if should trigger
             triggered_gesture = gesture_buffer.add_detection(gesture, confidence)

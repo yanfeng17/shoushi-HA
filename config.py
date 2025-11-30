@@ -16,19 +16,20 @@ MQTT_STATE_TOPIC = 'mediapipe/gesture/state'
 MQTT_DEVICE_NAME = 'gesture_control'
 
 # Video Processing Configuration
-FRAME_WIDTH = int(os.getenv('FRAME_WIDTH', '640'))
-FRAME_HEIGHT = int(os.getenv('FRAME_HEIGHT', '480'))
-TARGET_FPS = int(os.getenv('TARGET_FPS', '10'))
+FRAME_WIDTH = int(os.getenv('FRAME_WIDTH', '320'))
+FRAME_HEIGHT = int(os.getenv('FRAME_HEIGHT', '240'))
+TARGET_FPS = int(os.getenv('TARGET_FPS', '15'))
+SKIP_FRAMES = int(os.getenv('SKIP_FRAMES', '1'))  # Process every Nth frame (1=all, 2=half, 3=third)
 
 # Gesture Recognition Configuration
-GESTURE_CONFIDENCE_THRESHOLD = float(os.getenv('GESTURE_CONFIDENCE_THRESHOLD', '0.8'))
-GESTURE_STABLE_DURATION = float(os.getenv('GESTURE_STABLE_DURATION', '0.5'))  # seconds
-GESTURE_COOLDOWN = float(os.getenv('GESTURE_COOLDOWN', '2.0'))  # seconds
+GESTURE_CONFIDENCE_THRESHOLD = float(os.getenv('GESTURE_CONFIDENCE_THRESHOLD', '0.65'))
+GESTURE_STABLE_DURATION = float(os.getenv('GESTURE_STABLE_DURATION', '0.3'))  # seconds
+GESTURE_COOLDOWN = float(os.getenv('GESTURE_COOLDOWN', '1.5'))  # seconds
 
 # RTSP Reconnection
 RTSP_RECONNECT_DELAY = int(os.getenv('RTSP_RECONNECT_DELAY', '5'))  # seconds
 
 # MediaPipe Configuration
 MAX_NUM_HANDS = 1
-MIN_DETECTION_CONFIDENCE = 0.7
+MIN_DETECTION_CONFIDENCE = 0.5  # Lower for faster detection
 MIN_TRACKING_CONFIDENCE = 0.5
