@@ -15,10 +15,8 @@ RUN apk add --no-cache \
 
 # Install OpenCV dependencies
 RUN apk add --no-cache \
-    libavformat \
-    libavcodec \
-    libswscale \
-    libglib-2.0 \
+    ffmpeg-libs \
+    glib \
     libsm \
     libxext \
     libxrender
