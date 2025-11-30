@@ -269,13 +269,16 @@ class VideoStreamProcessor:
 
 def main():
     """Main application loop."""
-    logger.info("="*50)
+    logger.info("="*60)
+    logger.info("║ MediaPipe Gesture Control v1.0.1")
+    logger.info("║ Build: 2025-11-30")
+    logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
     logger.info(f"MQTT Broker: {config.MQTT_BROKER}:{config.MQTT_PORT}")
     logger.info(f"Target FPS: {config.TARGET_FPS}")
     logger.info(f"Log Level: {LOG_LEVEL}")
-    logger.info("="*50)
+    logger.info("="*60)
     
     # Initialize components
     gesture_engine = GestureEngine()
