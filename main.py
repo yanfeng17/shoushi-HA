@@ -14,23 +14,6 @@ import config
 from src.gesture_engine import GestureEngine
 from src.mqtt_client import MQTTClient
 
-# Import expression detection and visualization (optional based on config)
-if config.ENABLE_EXPRESSION:
-    try:
-        from src.expression_engine import ExpressionEngine
-        logger.info("Expression detection enabled")
-    except ImportError as e:
-        logger.warning(f"Failed to import ExpressionEngine: {e}. Expression detection disabled.")
-        config.ENABLE_EXPRESSION = False
-
-if config.DEBUG_VISUALIZATION:
-    try:
-        from src.visualization import DebugVisualizer
-        logger.info("Debug visualization enabled")
-    except ImportError as e:
-        logger.warning(f"Failed to import DebugVisualizer: {e}. Visualization disabled.")
-        config.DEBUG_VISUALIZATION = False
-
 # Additional suppression for OpenCV
 os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp|fflags;nobuffer|flags;low_delay'
 os.environ['OPENCV_LOG_LEVEL'] = 'FATAL'
@@ -48,6 +31,24 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Import expression detection and visualization (optional based on config)
+# Import after logger is defined
+if config.ENABLE_EXPRESSION:
+    try:
+        from src.expression_engine import ExpressionEngine
+        logger.info("Expression detection enabled")
+    except ImportError as e:
+        logger.warning(f"Failed to import ExpressionEngine: {e}. Expression detection disabled.")
+        config.ENABLE_EXPRESSION = False
+
+if config.DEBUG_VISUALIZATION:
+    try:
+        from src.visualization import DebugVisualizer
+        logger.info("Debug visualization enabled")
+    except ImportError as e:
+        logger.warning(f"Failed to import DebugVisualizer: {e}. Visualization disabled.")
+        config.DEBUG_VISUALIZATION = False
 
 
 class GestureBuffer:
