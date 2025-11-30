@@ -1,0 +1,37 @@
+configuration:
+  rtsp_url:
+    name: RTSP 地址
+    description: 摄像头的 RTSP 流地址（例如：rtsp://用户名:密码@IP:554/stream1）
+  mqtt_broker:
+    name: MQTT 服务器
+    description: MQTT broker 主机名或 IP 地址（内置 broker 使用 'core-mosquitto'）
+  mqtt_port:
+    name: MQTT 端口
+    description: MQTT broker 端口号
+  mqtt_username:
+    name: MQTT 用户名
+    description: MQTT 认证用户名（如不需要认证请留空）
+  mqtt_password:
+    name: MQTT 密码
+    description: MQTT 认证密码（如不需要认证请留空）
+  frame_width:
+    name: 画面宽度
+    description: 视频处理的画面宽度（越小性能越好）
+  frame_height:
+    name: 画面高度
+    description: 视频处理的画面高度（越小性能越好）
+  target_fps:
+    name: 目标帧率
+    description: 手势检测的目标每秒帧数（越小性能越好）
+  gesture_confidence_threshold:
+    name: 置信度阈值
+    description: 接受手势检测的最低置信度（越高误触发越少）
+  gesture_stable_duration:
+    name: 稳定时长
+    description: 手势必须保持稳定多少秒才会触发
+  gesture_cooldown:
+    name: 冷却时间
+    description: 重复手势触发之间的冷却时间（秒）
+  rtsp_reconnect_delay:
+    name: RTSP 重连延迟
+    description: RTSP 重新连接尝试之间的延迟（秒）

@@ -1,0 +1,37 @@
+configuration:
+  rtsp_url:
+    name: RTSP URL
+    description: The RTSP stream URL of your camera (e.g., rtsp://username:password@ip:554/stream1)
+  mqtt_broker:
+    name: MQTT Broker
+    description: MQTT broker hostname or IP address (use 'core-mosquitto' for built-in broker)
+  mqtt_port:
+    name: MQTT Port
+    description: MQTT broker port number
+  mqtt_username:
+    name: MQTT Username
+    description: MQTT authentication username (leave empty if not required)
+  mqtt_password:
+    name: MQTT Password
+    description: MQTT authentication password (leave empty if not required)
+  frame_width:
+    name: Frame Width
+    description: Video frame width for processing (lower = better performance)
+  frame_height:
+    name: Frame Height
+    description: Video frame height for processing (lower = better performance)
+  target_fps:
+    name: Target FPS
+    description: Target frames per second for gesture detection (lower = better performance)
+  gesture_confidence_threshold:
+    name: Confidence Threshold
+    description: Minimum confidence level to accept a gesture detection (higher = less false positives)
+  gesture_stable_duration:
+    name: Stable Duration
+    description: How long (in seconds) a gesture must be stable before triggering
+  gesture_cooldown:
+    name: Cooldown Period
+    description: Cooldown time (in seconds) between repeated gesture triggers
+  rtsp_reconnect_delay:
+    name: RTSP Reconnect Delay
+    description: Delay (in seconds) between RTSP reconnection attempts
