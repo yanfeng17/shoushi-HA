@@ -1,8 +1,12 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.11
-FROM ${BUILD_FROM}
+FROM python:3.11-slim-bookworm
 
 # Install system dependencies required by OpenCV and MediaPipe
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    jq \
+    tzdata \
+    curl \
+    ca-certificates \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
@@ -14,6 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libavformat59 \
     libswscale6 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install bashio for Home Assistant integration
+RUN pip3 install --no-cache-dir bashio
 
 # Set working directory
 WORKDIR /app

@@ -1,8 +1,12 @@
-#!/usr/bin/with-contenv bashio
+#!/usr/bin/env bashio
+
+set -e
 
 bashio::log.info "Starting MediaPipe Gesture Control addon..."
 
-# Read configuration from Home Assistant
+# Read configuration from Home Assistant options
+CONFIG_PATH=/data/options.json
+
 export RTSP_URL=$(bashio::config 'rtsp_url')
 export MQTT_BROKER=$(bashio::config 'mqtt_broker')
 export MQTT_PORT=$(bashio::config 'mqtt_port')
