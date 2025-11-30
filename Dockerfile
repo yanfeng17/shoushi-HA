@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian-python:3.11-bookworm
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.11
 FROM ${BUILD_FROM}
 
 # Install system dependencies required by OpenCV and MediaPipe
