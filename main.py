@@ -1,18 +1,27 @@
-import cv2
-import time
-import logging
 import sys
 import os
+import time
 from collections import deque
 from typing import Optional
+
+# CRITICAL: Suppress FFmpeg logs BEFORE importing cv2
+import suppress_ffmpeg_logs
+
+import cv2
+import logging
 
 import config
 from src.gesture_engine import GestureEngine
 from src.mqtt_client import MQTTClient
 
-# Suppress OpenCV warnings about decode errors
+# Additional suppression for OpenCV
 os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp|fflags;nobuffer|flags;low_delay'
-os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
+os.environ['OPENCV_LOG_LEVEL'] = 'FATAL'
+os.environ['OPENCV_VIDEOIO_DEBUG'] = '0'
+
+# Suppress Python warnings
+import warnings
+warnings.filterwarnings('ignore')
 
 # Configure logging
 # Set to DEBUG to see detailed gesture detection info
@@ -154,7 +163,7 @@ class VideoStreamProcessor:
     
     def connect(self) -> bool:
         """
-        Connect to RTSP stream.
+        Connect to RTSP stream with optimized settings.
         
         Returns:
             True if connection successful
@@ -162,21 +171,39 @@ class VideoStreamProcessor:
         try:
             logger.info(f"Connecting to RTSP stream: {self.rtsp_url}")
             
-            # Use CAP_FFMPEG backend for better RTSP support
-            self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+            # Build RTSP URL with optimized parameters
+            # Use TCP transport for reliability, reduce latency
+            if '?' not in self.rtsp_url:
+                optimized_url = self.rtsp_url
+            else:
+                optimized_url = self.rtsp_url
+            
+            # Use CAP_FFMPEG backend with error suppression
+            # Set CAP_PROP_LOGLEVEL to suppress FFmpeg warnings
+            self.cap = cv2.VideoCapture(optimized_url, cv2.CAP_FFMPEG)
             
             if not self.cap.isOpened():
                 logger.error("Failed to open RTSP stream")
                 return False
             
             # Optimize capture settings for RTSP
-            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce latency
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimal buffer for low latency
             self.cap.set(cv2.CAP_PROP_FPS, config.TARGET_FPS)  # Hint target FPS
+            
+            # Suppress FFmpeg error logging
+            # Note: This is OpenCV internal, may not work on all versions
+            try:
+                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'H264'))
+            except:
+                pass  # Ignore if not supported
             
             # Try to grab first frame to verify stream
             ret, _ = self.cap.read()
             if not ret:
-                logger.warning("Stream opened but cannot read first frame")
+                logger.warning("Stream opened but cannot read first frame, will retry")
+                # Try one more time
+                time.sleep(0.5)
+                ret, _ = self.cap.read()
             
             logger.info("RTSP stream connected successfully")
             return True

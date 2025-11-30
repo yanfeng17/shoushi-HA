@@ -17,7 +17,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libavcodec59 \
     libavformat59 \
     libswscale6 \
+    libavutil57 \
     && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables to suppress FFmpeg logs
+ENV FFREPORT=0
+ENV AV_LOG_FORCE_NOCOLOR=1
+ENV OPENCV_FFMPEG_LOGLEVEL=-8
 
 # Set working directory
 WORKDIR /app
