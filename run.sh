@@ -32,10 +32,8 @@ export AV_LOG_FORCE_NOCOLOR=1
 export OPENCV_FFMPEG_LOGLEVEL=-8
 export PYTHONWARNINGS="ignore"
 
-# Redirect stderr for FFmpeg (only for this process)
-# This will suppress the [h264 @...] error messages
-exec 2> >(grep -v "^\[h264 @" | grep -v "^\[hevc @" | grep -v "error while decoding MB" >&2)
-
 # Start the Python application
 cd /app
-exec python3 main.py
+
+# Redirect stderr to filter out FFmpeg errors while keeping Python errors
+python3 main.py 2>&1 | grep -v "^\[h264 @" | grep -v "^\[hevc @" | grep -v "error while decoding MB" | grep -v "left block unavailable"

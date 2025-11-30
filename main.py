@@ -269,10 +269,13 @@ class VideoStreamProcessor:
 
 def main():
     """Main application loop."""
+    logger.info("="*50)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
     logger.info(f"MQTT Broker: {config.MQTT_BROKER}:{config.MQTT_PORT}")
     logger.info(f"Target FPS: {config.TARGET_FPS}")
+    logger.info(f"Log Level: {LOG_LEVEL}")
+    logger.info("="*50)
     
     # Initialize components
     gesture_engine = GestureEngine()
@@ -291,6 +294,8 @@ def main():
     # Main loop with automatic reconnection
     consecutive_failures = 0
     max_consecutive_failures = 10
+    
+    logger.info("Entering main processing loop...")
     
     try:
         while True:
@@ -321,11 +326,15 @@ def main():
             # Reset failure counter on successful read
             consecutive_failures = 0
             
+            # Log first successful frame
+            if video_processor.frame_count == 1:
+                logger.info("✓ Successfully processing video frames!")
+            
             # Process frame with gesture engine
             gesture, confidence = gesture_engine.process_frame(frame)
             
             # Log detection for debugging (every 50 frames to avoid spam)
-            if video_processor.frame_count % 50 == 0:
+            if video_processor.frame_count % 50 == 0 or video_processor.frame_count == 1:
                 if gesture:
                     logger.info(f"[Frame {video_processor.frame_count}] Hand detected: {gesture} (confidence: {confidence:.2f})")
                 else:

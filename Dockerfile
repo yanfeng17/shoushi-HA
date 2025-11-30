@@ -34,10 +34,13 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY src/ /app/src/
-COPY main.py config.py /app/
+COPY main.py config.py suppress_ffmpeg_logs.py test_startup.py /app/
 
 # Copy run script
 COPY run.sh /
 RUN chmod a+x /run.sh
+
+# Make test script executable
+RUN chmod a+x /app/test_startup.py
 
 CMD ["/run.sh"]
