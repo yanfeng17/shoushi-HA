@@ -105,6 +105,7 @@ class GestureBuffer:
         Check if a gesture has been consistently detected for the stable duration.
         """
         if len(self.gesture_history) < 2:
+            logger.debug(f"Not stable: history too short ({len(self.gesture_history)} detections)")
             return False
         
         # Get all detections within the stable duration window
@@ -115,6 +116,7 @@ class GestureBuffer:
         ]
         
         if not recent_detections:
+            logger.warning(f"Not stable: no recent detections in {self.stable_duration}s window")
             return False
         
         # Check if all recent detections are the same gesture with high confidence
@@ -127,10 +129,20 @@ class GestureBuffer:
         time_span = current_time - recent_detections[0]['timestamp']
         has_sufficient_duration = time_span >= self.stable_duration
         
+        # Debug logging
+        logger.info(f"Stability check for {gesture}: "
+                   f"recent_count={len(recent_detections)}, "
+                   f"all_same={all_same_gesture}, "
+                   f"time_span={time_span:.2f}s, "
+                   f"required={self.stable_duration}s, "
+                   f"sufficient={has_sufficient_duration}")
+        
         if all_same_gesture and has_sufficient_duration:
             self.current_stable_gesture = gesture
+            logger.info(f"✓ Gesture {gesture} is STABLE and ready to trigger")
             return True
         
+        logger.info(f"✗ Gesture {gesture} not stable: same={all_same_gesture}, duration_ok={has_sufficient_duration}")
         return False
     
     def _can_trigger(self, gesture: str, current_time: float) -> bool:
@@ -276,8 +288,8 @@ class VideoStreamProcessor:
 def main():
     """Main application loop."""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.3")
-    logger.info("║ Build: 2025-11-30 17:15")
+    logger.info("║ MediaPipe Gesture Control v1.0.4 (DEBUG)")
+    logger.info("║ Build: 2025-11-30 17:20")
     logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
