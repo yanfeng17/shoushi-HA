@@ -1,5 +1,5 @@
 name: "MediaPipe Gesture Control"
-version: "1.0.2"
+version: "1.0.3"
 slug: mediapipe_gesture_control
 description: "Real-time hand gesture recognition using MediaPipe with MQTT integration"
 url: "https://github.com/yanfeng17/shoushi-HA"
@@ -22,8 +22,8 @@ options:
   frame_width: 640
   frame_height: 480
   target_fps: 10
-  gesture_confidence_threshold: 0.8
-  gesture_stable_duration: 0.5
+  gesture_confidence_threshold: 0.7
+  gesture_stable_duration: 0.3
   gesture_cooldown: 2.0
   rtsp_reconnect_delay: 5
   log_level: "INFO"

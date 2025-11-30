@@ -87,10 +87,16 @@ class GestureBuffer:
         if self._is_gesture_stable(gesture, current_time):
             # Check cooldown - don't trigger same gesture repeatedly
             if self._can_trigger(gesture, current_time):
-                logger.info(f"Gesture triggered: {gesture} (confidence: {confidence:.2f})")
+                logger.info(f"✓ Gesture TRIGGERED: {gesture} (confidence: {confidence:.2f})")
                 self.last_triggered_gesture = gesture
                 self.last_trigger_time = current_time
                 return gesture
+            else:
+                logger.debug(f"Gesture {gesture} is stable but in cooldown")
+        else:
+            # Log why not stable (but only occasionally to avoid spam)
+            if len(self.gesture_history) % 10 == 0:
+                logger.debug(f"Gesture {gesture} detected but not yet stable (history: {len(self.gesture_history)} detections)")
         
         return None
     
@@ -270,8 +276,8 @@ class VideoStreamProcessor:
 def main():
     """Main application loop."""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.2")
-    logger.info("║ Build: 2025-11-30 17:05")
+    logger.info("║ MediaPipe Gesture Control v1.0.3")
+    logger.info("║ Build: 2025-11-30 17:15")
     logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
@@ -336,10 +342,11 @@ def main():
             # Process frame with gesture engine
             gesture, confidence = gesture_engine.process_frame(frame)
             
-            # Log detection for debugging (every 50 frames to avoid spam)
-            if video_processor.frame_count % 50 == 0 or video_processor.frame_count == 1:
+            # Log detection for debugging (every 30 frames to see pattern better)
+            if video_processor.frame_count % 30 == 0 or video_processor.frame_count == 1:
                 if gesture:
-                    logger.info(f"[Frame {video_processor.frame_count}] Hand detected: {gesture} (confidence: {confidence:.2f})")
+                    history_len = len(gesture_buffer.gesture_history)
+                    logger.info(f"[Frame {video_processor.frame_count}] Hand detected: {gesture} (confidence: {confidence:.2f}) [buffer: {history_len}]")
                 else:
                     logger.info(f"[Frame {video_processor.frame_count}] No hand detected")
             
