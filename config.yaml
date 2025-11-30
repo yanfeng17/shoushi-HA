@@ -42,3 +42,4 @@ schema:
   gesture_cooldown: float(0.5,10.0)?
   rtsp_reconnect_delay: int(1,60)?
   log_level: list(DEBUG|INFO|WARNING|ERROR)?
+  skip_frames: int(1,5)?
