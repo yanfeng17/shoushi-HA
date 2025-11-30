@@ -39,4 +39,3 @@ schema:
   gesture_stable_duration: float(0.1,5.0)?
   gesture_cooldown: float(0.5,10.0)?
   rtsp_reconnect_delay: int(1,60)?
-image: "ghcr.io/{arch}-mediapipe-gesture-control"
