@@ -35,5 +35,11 @@ export PYTHONWARNINGS="ignore"
 # Start the Python application
 cd /app
 
-# Redirect stderr to filter out FFmpeg errors while keeping Python errors
-python3 main.py 2>&1 | grep -v "^\[h264 @" | grep -v "^\[hevc @" | grep -v "error while decoding MB" | grep -v "left block unavailable"
+# Use unbuffered output to ensure logs appear immediately
+export PYTHONUNBUFFERED=1
+
+echo "[INFO] Starting Python application..."
+
+# Run Python with unbuffered output
+# For now, show all output including FFmpeg errors for debugging
+python3 -u main.py

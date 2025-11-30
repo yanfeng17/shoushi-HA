@@ -270,8 +270,8 @@ class VideoStreamProcessor:
 def main():
     """Main application loop."""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.1")
-    logger.info("║ Build: 2025-11-30")
+    logger.info("║ MediaPipe Gesture Control v1.0.2")
+    logger.info("║ Build: 2025-11-30 17:05")
     logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
@@ -368,4 +368,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        # Force flush stdout/stderr
+        import sys
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
+        main()
+    except Exception as e:
+        logger.critical(f"FATAL ERROR: {e}", exc_info=True)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

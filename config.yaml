@@ -1,5 +1,5 @@
 name: "MediaPipe Gesture Control"
-version: "1.0.1"
+version: "1.0.2"
 slug: mediapipe_gesture_control
 description: "Real-time hand gesture recognition using MediaPipe with MQTT integration"
 url: "https://github.com/yanfeng17/shoushi-HA"
