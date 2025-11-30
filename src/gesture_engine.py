@@ -3,6 +3,10 @@ import mediapipe as mp
 import numpy as np
 from typing import Optional, Tuple
 import config
+import os
+
+# Disable GPU for MediaPipe (Docker container doesn't have GPU access)
+os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
 
 
 class GestureEngine:
@@ -13,8 +17,11 @@ class GestureEngine:
     
     def __init__(self):
         self.mp_hands = mp.solutions.hands
+        # Force CPU mode by setting model_complexity to 0 (lightweight)
         self.hands = self.mp_hands.Hands(
+            static_image_mode=False,
             max_num_hands=config.MAX_NUM_HANDS,
+            model_complexity=0,  # Use lightweight model for CPU
             min_detection_confidence=config.MIN_DETECTION_CONFIDENCE,
             min_tracking_confidence=config.MIN_TRACKING_CONFIDENCE
         )

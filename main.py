@@ -2,12 +2,17 @@ import cv2
 import time
 import logging
 import sys
+import os
 from collections import deque
 from typing import Optional
 
 import config
 from src.gesture_engine import GestureEngine
 from src.mqtt_client import MQTTClient
+
+# Suppress OpenCV warnings about decode errors
+os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp|fflags;nobuffer|flags;low_delay'
+os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
 
 # Configure logging
 logging.basicConfig(
@@ -154,14 +159,22 @@ class VideoStreamProcessor:
         """
         try:
             logger.info(f"Connecting to RTSP stream: {self.rtsp_url}")
-            self.cap = cv2.VideoCapture(self.rtsp_url)
+            
+            # Use CAP_FFMPEG backend for better RTSP support
+            self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
             
             if not self.cap.isOpened():
                 logger.error("Failed to open RTSP stream")
                 return False
             
-            # Set buffer size to reduce latency
-            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            # Optimize capture settings for RTSP
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce latency
+            self.cap.set(cv2.CAP_PROP_FPS, config.TARGET_FPS)  # Hint target FPS
+            
+            # Try to grab first frame to verify stream
+            ret, _ = self.cap.read()
+            if not ret:
+                logger.warning("Stream opened but cannot read first frame")
             
             logger.info("RTSP stream connected successfully")
             return True
@@ -172,7 +185,7 @@ class VideoStreamProcessor:
     def read_frame(self) -> Optional[cv2.Mat]:
         """
         Read and process a frame from the stream.
-        Implements frame rate limiting.
+        Implements frame rate limiting and error tolerance.
         
         Returns:
             Processed frame or None if failed
@@ -186,21 +199,35 @@ class VideoStreamProcessor:
             return None
         
         try:
-            ret, frame = self.cap.read()
+            # Try to read frame, allow up to 3 retries for decode errors
+            for attempt in range(3):
+                ret, frame = self.cap.read()
+                
+                # Successful read with valid frame
+                if ret and frame is not None and frame.size > 0:
+                    self.last_frame_time = current_time
+                    self.frame_count += 1
+                    
+                    # Resize frame for performance optimization
+                    try:
+                        frame = cv2.resize(frame, (config.FRAME_WIDTH, config.FRAME_HEIGHT))
+                        return frame
+                    except cv2.error as e:
+                        logger.debug(f"Frame resize error: {e}")
+                        continue
+                
+                # If failed, try again (skip corrupted frame)
+                if attempt < 2:
+                    continue
             
-            if not ret or frame is None:
-                logger.warning("Failed to read frame from stream")
-                return None
+            # All retries failed
+            if self.frame_count % 100 == 0:  # Log every 100 frames to reduce spam
+                logger.warning("Failed to read frame from stream after retries")
+            return None
             
-            self.last_frame_time = current_time
-            self.frame_count += 1
-            
-            # Resize frame for performance optimization
-            frame = cv2.resize(frame, (config.FRAME_WIDTH, config.FRAME_HEIGHT))
-            
-            return frame
         except Exception as e:
-            logger.error(f"Error reading frame: {e}")
+            if self.frame_count % 100 == 0:
+                logger.error(f"Error reading frame: {e}")
             return None
     
     def release(self):
