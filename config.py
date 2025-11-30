@@ -26,6 +26,23 @@ GESTURE_CONFIDENCE_THRESHOLD = float(os.getenv('GESTURE_CONFIDENCE_THRESHOLD', '
 GESTURE_STABLE_DURATION = float(os.getenv('GESTURE_STABLE_DURATION', '0.3'))  # seconds
 GESTURE_COOLDOWN = float(os.getenv('GESTURE_COOLDOWN', '1.5'))  # seconds
 
+# Expression Detection Configuration
+ENABLE_EXPRESSION = os.getenv('ENABLE_EXPRESSION_DETECTION', 'true').lower() == 'true'
+EXPRESSION_CONFIDENCE_THRESHOLD = float(os.getenv('EXPRESSION_CONFIDENCE_THRESHOLD', '0.3'))
+
+# Debug and Visualization
+DEBUG_VISUALIZATION = os.getenv('DEBUG_VISUALIZATION', 'true').lower() == 'true'
+PUBLISH_DETAILED_BLENDSHAPES = os.getenv('PUBLISH_DETAILED_BLENDSHAPES', 'true').lower() == 'true'
+BLENDSHAPES_MIN_THRESHOLD = float(os.getenv('BLENDSHAPES_MIN_THRESHOLD', '0.05'))
+
+# Expression Thresholds
+MOUTH_OPEN_THRESHOLD = float(os.getenv('MOUTH_OPEN_THRESHOLD', '0.3'))
+JAW_OPEN_THRESHOLD = float(os.getenv('JAW_OPEN_THRESHOLD', '0.5'))
+SMILE_THRESHOLD = float(os.getenv('SMILE_THRESHOLD', '0.4'))
+FROWN_THRESHOLD = float(os.getenv('FROWN_THRESHOLD', '0.3'))
+BLINK_THRESHOLD = float(os.getenv('BLINK_THRESHOLD', '0.7'))
+PUCKER_THRESHOLD = float(os.getenv('PUCKER_THRESHOLD', '0.4'))
+
 # RTSP Reconnection
 RTSP_RECONNECT_DELAY = int(os.getenv('RTSP_RECONNECT_DELAY', '5'))  # seconds
 

@@ -32,6 +32,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# Create models directory and download Face Landmarker model
+RUN mkdir -p /app/models && \
+    curl -L -o /app/models/face_landmarker.task \
+    https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task && \
+    echo "Face Landmarker model downloaded successfully"
+
 # Copy application code
 COPY src/ /app/src/
 COPY main.py config.py suppress_ffmpeg_logs.py test_startup.py /app/

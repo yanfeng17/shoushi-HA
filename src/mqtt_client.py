@@ -80,15 +80,15 @@ class MQTTClient:
             "name": "Gesture Control",
             "unique_id": f"{config.MQTT_DEVICE_NAME}_sensor",
             "state_topic": config.MQTT_STATE_TOPIC,
-            "value_template": "{{ value_json.gesture }}",
+            "value_template": "{{ value_json.state }}",
             "json_attributes_topic": config.MQTT_STATE_TOPIC,
             "icon": "mdi:hand-back-right",
             "device": {
                 "identifiers": [config.MQTT_DEVICE_NAME],
-                "name": "MediaPipe Gesture Recognition",
-                "model": "Hand Gesture Detector",
+                "name": "MediaPipe Gesture & Expression Recognition",
+                "model": "Hand Gesture & Face Expression Detector",
                 "manufacturer": "Custom",
-                "sw_version": "1.0.0"
+                "sw_version": "1.0.7"
             }
         }
         
@@ -106,23 +106,37 @@ class MQTTClient:
         else:
             logger.error(f"Failed to send discovery config: {result.rc}")
     
-    def publish_gesture(self, gesture: str, confidence: float):
+    def publish_state(self, state: str, confidence: float, state_type: str = "gesture", blendshapes: dict = None):
         """
-        Publish gesture state to MQTT.
+        Publish state (gesture or expression) to MQTT.
         
         Args:
-            gesture: Gesture name (e.g., "CLOSED_FIST")
+            state: State name (e.g., "CLOSED_FIST", "SMILE")
             confidence: Detection confidence (0.0 to 1.0)
+            state_type: Type of state ("gesture" or "expression")
+            blendshapes: Optional dictionary of blendshape values (for expressions)
         """
         if not self.connected:
             logger.warning("Not connected to MQTT broker, skipping publish")
             return
         
         payload = {
-            "gesture": gesture,
+            "state": state,
             "confidence": round(confidence, 3),
-            "timestamp": int(time.time())
+            "type": state_type,
+            "timestamp": time.time()
         }
+        
+        # Add blendshapes if provided and enabled
+        if blendshapes and config.PUBLISH_DETAILED_BLENDSHAPES:
+            # Filter blendshapes to only include significant values
+            filtered_blendshapes = {
+                k: round(v, 3)
+                for k, v in blendshapes.items()
+                if v >= config.BLENDSHAPES_MIN_THRESHOLD
+            }
+            if filtered_blendshapes:
+                payload["blendshapes"] = filtered_blendshapes
         
         result = self.client.publish(
             config.MQTT_STATE_TOPIC,
@@ -132,9 +146,19 @@ class MQTTClient:
         )
         
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
-            logger.debug(f"Published gesture: {gesture} (confidence: {confidence:.2f})")
+            logger.debug(f"Published {state_type}: {state} (confidence: {confidence:.2f})")
         else:
-            logger.error(f"Failed to publish gesture: {result.rc}")
+            logger.error(f"Failed to publish {state_type}: {result.rc}")
+    
+    def publish_gesture(self, gesture: str, confidence: float):
+        """
+        Backward compatibility method for publishing gestures.
+        
+        Args:
+            gesture: Gesture name (e.g., "CLOSED_FIST")
+            confidence: Detection confidence (0.0 to 1.0)
+        """
+        self.publish_state(gesture, confidence, state_type="gesture")
     
     def disconnect(self):
         """Disconnect from MQTT broker and clean up."""

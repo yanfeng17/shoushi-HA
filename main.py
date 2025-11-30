@@ -14,6 +14,23 @@ import config
 from src.gesture_engine import GestureEngine
 from src.mqtt_client import MQTTClient
 
+# Import expression detection and visualization (optional based on config)
+if config.ENABLE_EXPRESSION:
+    try:
+        from src.expression_engine import ExpressionEngine
+        logger.info("Expression detection enabled")
+    except ImportError as e:
+        logger.warning(f"Failed to import ExpressionEngine: {e}. Expression detection disabled.")
+        config.ENABLE_EXPRESSION = False
+
+if config.DEBUG_VISUALIZATION:
+    try:
+        from src.visualization import DebugVisualizer
+        logger.info("Debug visualization enabled")
+    except ImportError as e:
+        logger.warning(f"Failed to import DebugVisualizer: {e}. Visualization disabled.")
+        config.DEBUG_VISUALIZATION = False
+
 # Additional suppression for OpenCV
 os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp|fflags;nobuffer|flags;low_delay'
 os.environ['OPENCV_LOG_LEVEL'] = 'FATAL'
@@ -281,13 +298,15 @@ class VideoStreamProcessor:
 def main():
     """Main application loop."""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.6")
-    logger.info("║ Build: 2025-11-30 17:45 - OPTIMIZED FOR SPEED")
+    logger.info("║ MediaPipe Gesture Control v1.0.7")
+    logger.info("║ Build: 2025-11-30 - EXPRESSION DETECTION")
     logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
     logger.info(f"MQTT Broker: {config.MQTT_BROKER}:{config.MQTT_PORT}")
     logger.info(f"Target FPS: {config.TARGET_FPS}")
+    logger.info(f"Expression Detection: {config.ENABLE_EXPRESSION}")
+    logger.info(f"Debug Visualization: {config.DEBUG_VISUALIZATION}")
     logger.info(f"Log Level: {LOG_LEVEL}")
     logger.info("="*60)
     
@@ -296,6 +315,35 @@ def main():
     mqtt_client = MQTTClient()
     gesture_buffer = GestureBuffer()
     video_processor = VideoStreamProcessor(config.RTSP_URL)
+    
+    # Initialize expression engine (optional)
+    expression_engine = None
+    expression_buffer = None
+    if config.ENABLE_EXPRESSION:
+        try:
+            expression_engine = ExpressionEngine()
+            expression_buffer = GestureBuffer(
+                confidence_threshold=config.EXPRESSION_CONFIDENCE_THRESHOLD
+            )
+            logger.info("Expression engine initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize expression engine: {e}")
+            expression_engine = None
+    
+    # Initialize debug visualizer (optional)
+    visualizer = None
+    if config.DEBUG_VISUALIZATION:
+        try:
+            visualizer = DebugVisualizer()
+            logger.info("Debug visualizer initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize visualizer: {e}")
+            visualizer = None
+    
+    # FPS tracking
+    fps_start_time = time.time()
+    fps_frame_count = 0
+    current_fps = 0.0
     
     # Connect to MQTT broker
     if not mqtt_client.connect():
@@ -344,24 +392,74 @@ def main():
             if video_processor.frame_count == 1:
                 logger.info("✓ Successfully processing video frames!")
             
+            # Calculate FPS
+            fps_frame_count += 1
+            if time.time() - fps_start_time >= 1.0:
+                current_fps = fps_frame_count / (time.time() - fps_start_time)
+                fps_start_time = time.time()
+                fps_frame_count = 0
+            
             # Process frame with gesture engine
-            gesture, confidence = gesture_engine.process_frame(frame)
+            gesture, gesture_confidence = gesture_engine.process_frame(frame)
+            
+            # Process frame with expression engine (if enabled)
+            expression = None
+            expression_confidence = 0.0
+            blendshapes = {}
+            if expression_engine:
+                try:
+                    expression, expression_confidence, blendshapes = expression_engine.process_frame(frame)
+                except Exception as e:
+                    logger.error(f"Error in expression detection: {e}")
+            
+            # Debug visualization (if enabled)
+            if visualizer:
+                try:
+                    frame = visualizer.draw_debug_overlay(
+                        frame=frame,
+                        fps=current_fps,
+                        frame_count=video_processor.frame_count,
+                        gesture=gesture,
+                        gesture_confidence=gesture_confidence,
+                        expression=expression,
+                        expression_confidence=expression_confidence,
+                        blendshapes=blendshapes,
+                        buffer_size=len(gesture_buffer.gesture_history)
+                    )
+                except Exception as e:
+                    logger.error(f"Error in visualization: {e}")
             
             # Log detection for debugging (every 20 processed frames)
             if video_processor.processed_frame_count % 20 == 0 or video_processor.processed_frame_count == 1:
+                parts = [f"[Processed {video_processor.processed_frame_count}]"]
                 if gesture:
-                    history_len = len(gesture_buffer.gesture_history)
-                    logger.info(f"[Processed {video_processor.processed_frame_count}] Hand detected: {gesture} (confidence: {confidence:.2f}) [buffer: {history_len}]")
-                else:
-                    logger.info(f"[Processed {video_processor.processed_frame_count}] No hand detected")
+                    parts.append(f"Hand: {gesture} ({gesture_confidence:.2f})")
+                if expression:
+                    parts.append(f"Face: {expression} ({expression_confidence:.2f})")
+                if parts:
+                    logger.info(" | ".join(parts))
             
-            # Add detection to buffer and check if should trigger
-            triggered_gesture = gesture_buffer.add_detection(gesture, confidence)
+            # Add detections to buffers and check if should trigger
+            triggered_gesture = gesture_buffer.add_detection(gesture, gesture_confidence)
+            triggered_expression = None
+            if expression_buffer:
+                triggered_expression = expression_buffer.add_detection(expression, expression_confidence)
             
-            # If gesture should be triggered, publish to MQTT
-            if triggered_gesture:
-                logger.info(f"✓ Gesture TRIGGERED and published: {triggered_gesture} (confidence: {confidence:.2f})")
-                mqtt_client.publish_gesture(triggered_gesture, confidence)
+            # Publish to MQTT (prioritize gesture over expression if both trigger)
+            triggered_state = triggered_gesture or triggered_expression
+            if triggered_state:
+                state_type = "gesture" if triggered_gesture else "expression"
+                confidence = gesture_confidence if triggered_gesture else expression_confidence
+                
+                logger.info(f"✓ {state_type.upper()} TRIGGERED: {triggered_state} (confidence: {confidence:.2f})")
+                
+                # Publish with optional blendshapes data
+                mqtt_client.publish_state(
+                    state=triggered_state,
+                    confidence=confidence,
+                    state_type=state_type,
+                    blendshapes=blendshapes if config.PUBLISH_DETAILED_BLENDSHAPES else None
+                )
             
             # Small sleep to prevent CPU overload
             time.sleep(0.01)
@@ -375,6 +473,8 @@ def main():
         logger.info("Cleaning up resources...")
         video_processor.release()
         gesture_engine.release()
+        if expression_engine:
+            expression_engine.release()
         mqtt_client.disconnect()
         logger.info("Shutdown complete")
 
