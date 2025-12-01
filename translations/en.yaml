@@ -1,37 +1,131 @@
 configuration:
+  # ============================================================================
+  # RTSP Configuration
+  # ============================================================================
   rtsp_url:
     name: RTSP URL
-    description: The RTSP stream URL of your camera (e.g., rtsp://username:password@ip:554/stream1)
+    description: Camera RTSP stream URL (format: rtsp://username:password@ip:554/stream1)
+  rtsp_reconnect_delay:
+    name: RTSP Reconnect Delay
+    description: Delay in seconds before retrying failed RTSP connection (recommended: 5)
+  
+  # ============================================================================
+  # MQTT Configuration
+  # ============================================================================
   mqtt_broker:
     name: MQTT Broker
-    description: MQTT broker hostname or IP address (use 'core-mosquitto' for built-in broker)
+    description: MQTT broker hostname or IP address (use 'core-mosquitto' for Home Assistant built-in broker)
   mqtt_port:
     name: MQTT Port
-    description: MQTT broker port number
+    description: MQTT broker port number (default: 1883)
   mqtt_username:
     name: MQTT Username
     description: MQTT authentication username (leave empty if not required)
   mqtt_password:
     name: MQTT Password
     description: MQTT authentication password (leave empty if not required)
+  
+  # ============================================================================
+  # Video Processing Configuration
+  # ============================================================================
   frame_width:
     name: Frame Width
-    description: Video frame width for processing (lower = better performance)
+    description: |
+      Video frame width in pixels for processing
+      - Lower values = faster processing but may reduce accuracy
+      - Recommended: 320 (balanced performance and accuracy)
+      - Range: 160-1920
   frame_height:
     name: Frame Height
-    description: Video frame height for processing (lower = better performance)
+    description: |
+      Video frame height in pixels for processing
+      - Lower values = faster processing but may reduce accuracy
+      - Recommended: 240 (balanced performance and accuracy)
+      - Range: 120-1080
   target_fps:
     name: Target FPS
-    description: Target frames per second for gesture detection (lower = better performance)
+    description: |
+      Target frames per second for gesture detection
+      - Lower values = lower CPU usage
+      - Recommended: 10-15 (smooth and resource-efficient)
+      - Range: 5-30
+  skip_frames:
+    name: Skip Frames
+    description: |
+      Process every Nth frame (for further performance improvement)
+      - 1 = process all frames (most accurate, most resource-intensive)
+      - 2 = process half frames (balanced)
+      - 3+ = skip more frames (best performance, may miss gestures)
+      - Recommended: 1-2
+  
+  # ============================================================================
+  # Gesture Recognition Configuration
+  # ============================================================================
   gesture_confidence_threshold:
     name: Confidence Threshold
-    description: Minimum confidence level to accept a gesture detection (higher = less false positives)
-  gesture_stable_duration:
-    name: Stable Duration
-    description: How long (in seconds) a gesture must be stable before triggering
+    description: |
+      Minimum confidence level to accept a gesture detection (0.5-1.0)
+      - Higher = stricter, fewer false positives, may miss gestures
+      - Lower = looser, more sensitive, may trigger false positives
+      - Recommended: 0.65 (balanced accuracy and sensitivity)
+  gesture_min_detections:
+    name: Minimum Detections
+    description: |
+      Number of consecutive detections required to trigger a gesture (2-10)
+      - Higher = more stable, fewer false positives, slower response
+      - Lower = more sensitive, faster response, may trigger false positives
+      - Recommended: 2-3 (fast response and stable)
+      - Time reference: 2×≈0.06s, 3×≈0.13s, 5×≈0.30s
   gesture_cooldown:
     name: Cooldown Period
-    description: Cooldown time (in seconds) between repeated gesture triggers
-  rtsp_reconnect_delay:
-    name: RTSP Reconnect Delay
-    description: Delay (in seconds) between RTSP reconnection attempts
+    description: |
+      Cooldown time in seconds between repeated triggers of the same gesture
+      - Prevents the same gesture from triggering multiple times
+      - Recommended: 1.0-2.0 seconds
+      - Range: 0.5-10.0
+  
+  # ============================================================================
+  # Gesture Toggles (10 Static Gestures)
+  # ============================================================================
+  enable_open_palm:
+    name: Enable "Open Palm" 🖐️
+    description: All five fingers extended (suitable for "stop" or "confirm" commands)
+  enable_closed_fist:
+    name: Enable "Closed Fist" ✊
+    description: All five fingers closed into a fist (suitable for "cancel" or "close" commands)
+  enable_pointing_up:
+    name: Enable "Pointing Up" ☝️
+    description: Only index finger extended upward (suitable for "select" or "point" commands)
+  enable_ok_sign:
+    name: Enable "OK Sign" 👌
+    description: Thumb and index finger forming a circle, other fingers extended (suitable for "OK" or "confirm" commands)
+  enable_thumbs_up:
+    name: Enable "Thumbs Up" 👍
+    description: Thumb pointing up, other fingers closed (suitable for "approve" or "increase" commands)
+  enable_thumbs_down:
+    name: Enable "Thumbs Down" 👎
+    description: Thumb pointing down, other fingers closed (suitable for "disapprove" or "decrease" commands)
+  enable_peace:
+    name: Enable "Peace/Victory" ✌️
+    description: Index and middle fingers extended in V shape, others closed (suitable for "option 2" or "victory" commands)
+  enable_three_fingers:
+    name: Enable "Three Fingers" 🤟
+    description: Thumb, index, and middle fingers extended, others closed (suitable for "option 3" commands)
+  enable_four_fingers:
+    name: Enable "Four Fingers" 🤚
+    description: Index, middle, ring, and pinky extended, thumb closed (suitable for "option 4" commands)
+  enable_pinch:
+    name: Enable "Pinch" 🤏
+    description: Thumb and index fingertips close together, others closed (suitable for "precise select" or "zoom out" commands)
+  
+  # ============================================================================
+  # Logging Configuration
+  # ============================================================================
+  log_level:
+    name: Log Level
+    description: |
+      Logging verbosity level
+      - DEBUG: Most detailed, shows all debug information (for troubleshooting only)
+      - INFO: Normal, shows important operation information (recommended)
+      - WARNING: Shows only warnings and errors
+      - ERROR: Shows only error messages

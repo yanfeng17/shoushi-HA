@@ -1,3 +1,10 @@
+"""
+MediaPipe Gesture Control - Main Application
+
+v2.0.0: Simplified pure gesture recognition system
+Removed: Expression detection, motion detection, visualization
+"""
+
 import sys
 import os
 import time
@@ -12,7 +19,6 @@ import logging
 
 import config
 from src.gesture_engine import GestureEngine
-from src.motion_detector import MotionDetector
 from src.mqtt_client import MQTTClient
 
 # Additional suppression for OpenCV
@@ -25,31 +31,12 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Configure logging
-# Set to DEBUG to see detailed gesture detection info
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Import expression detection and visualization (optional based on config)
-# Import after logger is defined
-if config.ENABLE_EXPRESSION:
-    try:
-        from src.expression_engine import ExpressionEngine
-        logger.info("Expression detection enabled")
-    except ImportError as e:
-        logger.warning(f"Failed to import ExpressionEngine: {e}. Expression detection disabled.")
-        config.ENABLE_EXPRESSION = False
-
-if config.DEBUG_VISUALIZATION:
-    try:
-        from src.visualization import DebugVisualizer
-        logger.info("Debug visualization enabled")
-    except ImportError as e:
-        logger.warning(f"Failed to import DebugVisualizer: {e}. Visualization disabled.")
-        config.DEBUG_VISUALIZATION = False
 
 
 class GestureBuffer:
@@ -69,7 +56,7 @@ class GestureBuffer:
         self.confidence_threshold = confidence_threshold
         
         # Buffer to store recent gesture detections
-        self.gesture_history = deque(maxlen=50)  # Store timestamps and gestures
+        self.gesture_history = deque(maxlen=50)
         
         # State tracking
         self.current_stable_gesture: Optional[str] = None
@@ -106,30 +93,22 @@ class GestureBuffer:
         if self._is_gesture_stable(gesture, current_time):
             # Check cooldown - don't trigger same gesture repeatedly
             if self._can_trigger(gesture, current_time):
-                logger.info(f"✓ Gesture TRIGGERED: {gesture} (confidence: {confidence:.2f})")
+                logger.info(f"✓ 手势触发: {gesture} (置信度: {confidence:.2f})")
                 self.last_triggered_gesture = gesture
                 self.last_trigger_time = current_time
                 return gesture
             else:
-                logger.debug(f"Gesture {gesture} is stable but in cooldown")
+                logger.debug(f"手势 {gesture} 已稳定但处于冷却期")
         else:
             # Log why not stable (but only occasionally to avoid spam)
             if len(self.gesture_history) % 10 == 0:
-                logger.debug(f"Gesture {gesture} detected but not yet stable (history: {len(self.gesture_history)} detections)")
+                logger.debug(f"手势 {gesture} 已检测但尚未稳定 (历史: {len(self.gesture_history)} 次检测)")
         
         return None
     
     def _is_gesture_stable(self, gesture: str, current_time: float) -> bool:
         """
         Check if a gesture has been consistently detected.
-        Uses count-based approach for stability detection.
-        
-        Args:
-            gesture: The gesture to check
-            current_time: Current timestamp
-            
-        Returns:
-            True if gesture has been detected consistently for min_detections frames
         """
         if len(self.gesture_history) < self.min_detections:
             return False
@@ -148,235 +127,159 @@ class GestureBuffer:
         # Calculate time span for logging
         time_span = recent_detections[-1]['timestamp'] - recent_detections[0]['timestamp']
         
-        # Debug logging (only occasionally to reduce spam)
-        if len(self.gesture_history) % 10 == 0:
-            logger.info(f"Stability check for {gesture}: "
-                       f"last_{self.min_detections}={all_same_gesture}, "
-                       f"time_span={time_span:.2f}s, "
-                       f"buffer_size={len(self.gesture_history)}")
+        logger.info(
+            f"稳定性检查 {gesture}: "
+            f"last_{self.min_detections}={all_same_gesture}, "
+            f"time_span={time_span:.2f}s, "
+            f"buffer_size={len(self.gesture_history)}"
+        )
         
         if all_same_gesture:
+            logger.info(f"✓ 手势 {gesture} 已稳定 (最近 {self.min_detections} 次检测一致)")
             self.current_stable_gesture = gesture
-            logger.info(f"✓ Gesture {gesture} is STABLE (last {self.min_detections} detections consistent)")
             return True
         
         return False
     
     def _can_trigger(self, gesture: str, current_time: float) -> bool:
         """
-        Check if a gesture can be triggered based on cooldown logic.
-        
-        Cooldown rules:
-        - Same gesture can't be triggered again within cooldown period
-        - Different gesture can be triggered immediately
+        Check if a gesture can be triggered based on cooldown.
         """
-        # Different gesture - allow immediate trigger
+        # If this is a different gesture, allow immediate trigger
         if gesture != self.last_triggered_gesture:
             return True
         
-        # Same gesture - check cooldown
+        # Same gesture: check cooldown period
         time_since_last_trigger = current_time - self.last_trigger_time
-        return time_since_last_trigger >= self.cooldown
-    
-    def reset(self):
-        """Reset all state."""
-        self.gesture_history.clear()
-        self.current_stable_gesture = None
+        if time_since_last_trigger < self.cooldown:
+            logger.debug(
+                f"冷却中: {gesture} (距上次触发 {time_since_last_trigger:.2f}s, "
+                f"需要 {self.cooldown}s)"
+            )
+            return False
+        
+        return True
 
 
 class VideoStreamProcessor:
     """
-    Handles RTSP stream capture with automatic reconnection.
+    Handles RTSP video stream connection and frame processing.
     """
     
     def __init__(self, rtsp_url: str):
         self.rtsp_url = rtsp_url
-        self.cap: Optional[cv2.VideoCapture] = None
+        self.cap = None
         self.frame_count = 0
         self.processed_frame_count = 0
-        self.last_frame_time = 0
-        self.target_frame_interval = 1.0 / config.TARGET_FPS
+        self.skip_frames = config.SKIP_FRAMES
     
     def connect(self) -> bool:
         """
-        Connect to RTSP stream with optimized settings.
-        
-        Returns:
-            True if connection successful
+        Connect to RTSP stream.
         """
         try:
-            logger.info(f"Connecting to RTSP stream: {self.rtsp_url}")
+            logger.info(f"连接到 RTSP 流: {self.rtsp_url}")
             
-            # Build RTSP URL with optimized parameters
-            # Use TCP transport for reliability, reduce latency
-            if '?' not in self.rtsp_url:
-                optimized_url = self.rtsp_url
-            else:
-                optimized_url = self.rtsp_url
+            # Release existing connection if any
+            if self.cap is not None:
+                self.cap.release()
             
-            # Use CAP_FFMPEG backend with error suppression
-            # Set CAP_PROP_LOGLEVEL to suppress FFmpeg warnings
-            self.cap = cv2.VideoCapture(optimized_url, cv2.CAP_FFMPEG)
+            # Create new connection
+            self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+            
+            # Set low latency options
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             
             if not self.cap.isOpened():
-                logger.error("Failed to open RTSP stream")
+                logger.error("无法打开 RTSP 流")
                 return False
             
-            # Optimize capture settings for RTSP
-            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimal buffer for low latency
-            self.cap.set(cv2.CAP_PROP_FPS, config.TARGET_FPS)  # Hint target FPS
-            
-            # Suppress FFmpeg error logging
-            # Note: This is OpenCV internal, may not work on all versions
-            try:
-                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'H264'))
-            except:
-                pass  # Ignore if not supported
-            
-            # Try to grab first frame to verify stream
-            ret, _ = self.cap.read()
-            if not ret:
-                logger.warning("Stream opened but cannot read first frame, will retry")
-                # Try one more time
-                time.sleep(0.5)
-                ret, _ = self.cap.read()
-            
-            logger.info("RTSP stream connected successfully")
+            logger.info("成功连接到 RTSP 流")
             return True
+            
         except Exception as e:
-            logger.error(f"Error connecting to RTSP stream: {e}")
+            logger.error(f"连接 RTSP 流失败: {e}")
             return False
     
-    def read_frame(self) -> Optional[cv2.Mat]:
+    def read_frame(self):
         """
-        Read and process a frame from the stream.
-        Implements frame rate limiting and error tolerance.
-        
-        Returns:
-            Processed frame or None if failed
+        Read and process next frame from stream.
         """
-        if self.cap is None or not self.cap.isOpened():
+        if not self.cap or not self.cap.isOpened():
             return None
-        
-        # Minimal frame rate limiting (removed strict timing to reduce latency)
-        current_time = time.time()
         
         try:
-            # Try to read frame, allow up to 3 retries for decode errors
-            for attempt in range(3):
-                ret, frame = self.cap.read()
-                
-                # Successful read with valid frame
-                if ret and frame is not None and frame.size > 0:
-                    self.last_frame_time = current_time
-                    self.frame_count += 1
-                    
-                    # Resize frame for performance optimization
-                    try:
-                        frame = cv2.resize(frame, (config.FRAME_WIDTH, config.FRAME_HEIGHT))
-                        return frame
-                    except cv2.error as e:
-                        logger.debug(f"Frame resize error: {e}")
-                        continue
-                
-                # If failed, try again (skip corrupted frame)
-                if attempt < 2:
-                    continue
+            # Skip frames if configured
+            for _ in range(self.skip_frames - 1):
+                self.cap.grab()
+                self.frame_count += 1
             
-            # All retries failed
-            if self.frame_count % 100 == 0:  # Log every 100 frames to reduce spam
-                logger.warning("Failed to read frame from stream after retries")
-            return None
+            ret, frame = self.cap.read()
+            self.frame_count += 1
+            
+            if not ret or frame is None:
+                logger.debug(f"读取帧失败 (帧 #{self.frame_count})")
+                return None
+            
+            # Resize frame if needed
+            if config.FRAME_WIDTH and config.FRAME_HEIGHT:
+                frame = cv2.resize(frame, (config.FRAME_WIDTH, config.FRAME_HEIGHT))
+            
+            self.processed_frame_count += 1
+            return frame
             
         except Exception as e:
-            if self.frame_count % 100 == 0:
-                logger.error(f"Error reading frame: {e}")
+            logger.error(f"处理帧时出错: {e}")
             return None
     
     def release(self):
         """Release video capture resources."""
-        if self.cap is not None:
+        if self.cap:
             self.cap.release()
-            self.cap = None
-            logger.info("Video stream released")
+            logger.info("释放视频流资源")
 
 
 def main():
-    """Main application loop."""
+    """主应用程序循环"""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.10")
-    logger.info("║ Build: 2025-11-30 - EXPRESSION DETECTION")
+    logger.info("║ MediaPipe 手势识别 v2.0.0")
+    logger.info("║ 纯静态手势识别系统")
     logger.info("="*60)
-    logger.info("Starting Gesture Recognition System")
+    logger.info("启动手势识别系统")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
     logger.info(f"MQTT Broker: {config.MQTT_BROKER}:{config.MQTT_PORT}")
-    logger.info(f"Target FPS: {config.TARGET_FPS}")
-    logger.info(f"Expression Detection: {config.ENABLE_EXPRESSION}")
-    logger.info(f"Debug Visualization: {config.DEBUG_VISUALIZATION}")
-    logger.info(f"Log Level: {LOG_LEVEL}")
+    logger.info(f"目标 FPS: {config.TARGET_FPS}")
+    logger.info(f"画面大小: {config.FRAME_WIDTH}x{config.FRAME_HEIGHT}")
+    logger.info(f"跳帧处理: 每 {config.SKIP_FRAMES} 帧处理一次")
     logger.info("="*60)
     
     # Initialize components
     gesture_engine = GestureEngine()
-    motion_detector = MotionDetector()  # 动态手势检测器
     mqtt_client = MQTTClient()
     gesture_buffer = GestureBuffer()
     video_processor = VideoStreamProcessor(config.RTSP_URL)
     
-    # Initialize expression engine (optional)
-    expression_engine = None
-    expression_buffer = None
-    if config.ENABLE_EXPRESSION:
-        try:
-            expression_engine = ExpressionEngine()
-            expression_buffer = GestureBuffer(
-                min_detections=config.EXPRESSION_MIN_DETECTIONS,
-                confidence_threshold=config.EXPRESSION_CONFIDENCE_THRESHOLD
-            )
-            logger.info("Expression engine initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize expression engine: {e}")
-            expression_engine = None
-    
-    # Initialize debug visualizer (optional)
-    visualizer = None
-    if config.DEBUG_VISUALIZATION:
-        try:
-            visualizer = DebugVisualizer()
-            logger.info("Debug visualizer initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize visualizer: {e}")
-            visualizer = None
-    
-    # FPS tracking
-    fps_start_time = time.time()
-    fps_frame_count = 0
-    current_fps = 0.0
-    
-    # Connect to MQTT broker
+    # Connect to MQTT
     if not mqtt_client.connect():
-        logger.error("Failed to connect to MQTT broker. Retrying in 5 seconds...")
-        time.sleep(5)
-        if not mqtt_client.connect():
-            logger.error("Unable to connect to MQTT broker. Exiting.")
-            return
+        logger.error("无法连接到 MQTT broker，退出...")
+        return
     
-    # Main loop with automatic reconnection
+    logger.info("MQTT 连接成功")
+    
+    # Main loop
     consecutive_failures = 0
     max_consecutive_failures = 10
-    
-    logger.info("Entering main processing loop...")
+    last_log_time = time.time()
     
     try:
         while True:
-            # Connect/reconnect to video stream
-            if video_processor.cap is None or not video_processor.cap.isOpened():
+            # Connect to video stream if not connected
+            if not video_processor.cap or not video_processor.cap.isOpened():
+                logger.info("视频流未连接，尝试连接...")
                 if not video_processor.connect():
-                    logger.error(f"Failed to connect to video stream. Retrying in {config.RTSP_RECONNECT_DELAY} seconds...")
+                    logger.error(f"视频流连接失败，{config.RTSP_RECONNECT_DELAY}秒后重试...")
                     time.sleep(config.RTSP_RECONNECT_DELAY)
                     continue
-                
-                # Reset failure counter on successful connection
                 consecutive_failures = 0
             
             # Read frame
@@ -384,159 +287,51 @@ def main():
             
             if frame is None:
                 consecutive_failures += 1
-                
                 if consecutive_failures >= max_consecutive_failures:
-                    logger.error(f"Too many consecutive failures ({consecutive_failures}). Reconnecting...")
+                    logger.error(f"连续失败 {consecutive_failures} 次，重新连接...")
                     video_processor.release()
                     consecutive_failures = 0
-                
                 time.sleep(0.1)
                 continue
             
-            # Reset failure counter on successful read
             consecutive_failures = 0
             
-            # Log first successful frame
-            if video_processor.frame_count == 1:
-                logger.info("✓ Successfully processing video frames!")
+            # Process gesture recognition
+            gesture, confidence = gesture_engine.process_frame(frame)
             
-            # Calculate FPS
-            fps_frame_count += 1
-            if time.time() - fps_start_time >= 1.0:
-                current_fps = fps_frame_count / (time.time() - fps_start_time)
-                fps_start_time = time.time()
-                fps_frame_count = 0
-            
-            # 1. Process static gesture recognition
-            gesture, gesture_confidence = gesture_engine.process_frame(frame)
-            
-            # 2. Process dynamic gesture (motion detection)
-            motion_gesture = None
-            motion_confidence = 0.0
-            
-            if gesture:  # Hand detected
-                # Get hand landmarks for motion tracking
-                hand_landmarks = gesture_engine.get_hand_landmarks()
-                if hand_landmarks:
-                    # Add wrist position to motion detector
-                    wrist = hand_landmarks.landmark[0]
-                    motion_detector.add_hand_position(wrist, time.time())
-                    
-                    # Detect motion gestures
-                    motion_gesture, motion_confidence = motion_detector.detect_motion()
-            else:
-                # No hand detected, reset motion detector
-                motion_detector.reset()
-            
-            # 3. Determine final gesture (priority: motion > static)
-            final_gesture = None
-            final_confidence = 0.0
-            gesture_type = "static"
-            
-            if motion_gesture:
-                # Motion gesture has priority
-                final_gesture = motion_gesture
-                final_confidence = motion_confidence
-                gesture_type = "motion"
-            elif gesture and gesture != 'NONE':
-                # Use static gesture if no motion detected
-                final_gesture = gesture
-                final_confidence = gesture_confidence
-                gesture_type = "static"
-            
-            # 4. Check gesture buffer and trigger if stable
-            if final_gesture:
-                triggered_gesture = gesture_buffer.add_detection(final_gesture, final_confidence)
+            # Check if gesture should be triggered
+            if gesture and gesture != 'NONE':
+                triggered_gesture = gesture_buffer.add_detection(gesture, confidence)
                 if triggered_gesture:
-                    # Publish to gesture sensor
-                    mqtt_client.publish_gesture(triggered_gesture, final_confidence, gesture_type)
-                    logger.info(f"✓ GESTURE TRIGGERED: {triggered_gesture} ({gesture_type}, confidence: {final_confidence:.2f})")
+                    mqtt_client.publish_gesture(triggered_gesture, confidence)
             else:
                 gesture_buffer.add_detection(None, 0.0)
             
-            # 5. Process expression (independent from gestures)
-            expression = None
-            expression_confidence = 0.0
-            blendshapes = {}
-            if expression_engine:
-                try:
-                    expression, expression_confidence, blendshapes = expression_engine.process_frame(frame)
-                except Exception as e:
-                    logger.error(f"Error in expression detection: {e}")
-            
-            # 6. Check expression buffer and trigger if stable (separate from gesture)
-            if expression_buffer and expression:
-                triggered_expression = expression_buffer.add_detection(expression, expression_confidence)
-                if triggered_expression and triggered_expression != 'NEUTRAL':
-                    # Publish to expression sensor (separate from gesture)
-                    mqtt_client.publish_expression(
-                        expression=triggered_expression,
-                        confidence=expression_confidence,
-                        blendshapes=blendshapes if config.PUBLISH_DETAILED_BLENDSHAPES else None
+            # Periodic logging (every 20 frames or 5 seconds)
+            current_time = time.time()
+            if (video_processor.processed_frame_count % 20 == 0 or 
+                current_time - last_log_time >= 5):
+                if gesture:
+                    logger.info(
+                        f"[已处理 {video_processor.processed_frame_count}] "
+                        f"手势: {gesture} ({confidence:.2f})"
                     )
-                    logger.info(f"✓ EXPRESSION TRIGGERED: {triggered_expression} (confidence: {expression_confidence:.2f})")
-            elif expression_buffer:
-                expression_buffer.add_detection(None, 0.0)
+                last_log_time = current_time
             
-            # 7. Debug visualization (if enabled)
-            if visualizer:
-                try:
-                    # Display both static and motion gestures
-                    display_gesture = motion_gesture if motion_gesture else gesture
-                    display_confidence = motion_confidence if motion_gesture else gesture_confidence
-                    
-                    frame = visualizer.draw_debug_overlay(
-                        frame=frame,
-                        fps=current_fps,
-                        frame_count=video_processor.frame_count,
-                        gesture=display_gesture,
-                        gesture_confidence=display_confidence,
-                        expression=expression,
-                        expression_confidence=expression_confidence,
-                        blendshapes=blendshapes,
-                        buffer_size=len(gesture_buffer.gesture_history)
-                    )
-                except Exception as e:
-                    logger.error(f"Error in visualization: {e}")
-            
-            # 8. Log detection for debugging (every 20 processed frames)
-            if video_processor.processed_frame_count % 20 == 0 or video_processor.processed_frame_count == 1:
-                parts = [f"[Processed {video_processor.processed_frame_count}]"]
-                if final_gesture:
-                    parts.append(f"Gesture: {final_gesture} ({gesture_type}, {final_confidence:.2f})")
-                if expression:
-                    parts.append(f"Expression: {expression} ({expression_confidence:.2f})")
-                if parts:
-                    logger.info(" | ".join(parts))
-            
-            # Small sleep to prevent CPU overload
-            time.sleep(0.01)
+            # Frame rate control
+            time.sleep(1.0 / config.TARGET_FPS if config.TARGET_FPS > 0 else 0.01)
     
     except KeyboardInterrupt:
-        logger.info("Keyboard interrupt received. Shutting down...")
+        logger.info("收到停止信号")
     except Exception as e:
-        logger.error(f"Unexpected error in main loop: {e}", exc_info=True)
+        logger.error(f"主循环出错: {e}", exc_info=True)
     finally:
-        # Cleanup
-        logger.info("Cleaning up resources...")
-        video_processor.release()
+        logger.info("清理资源...")
         gesture_engine.release()
-        if expression_engine:
-            expression_engine.release()
+        video_processor.release()
         mqtt_client.disconnect()
-        logger.info("Shutdown complete")
+        logger.info("程序已退出")
 
 
 if __name__ == "__main__":
-    try:
-        # Force flush stdout/stderr
-        import sys
-        sys.stdout.flush()
-        sys.stderr.flush()
-        
-        main()
-    except Exception as e:
-        logger.critical(f"FATAL ERROR: {e}", exc_info=True)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    main()

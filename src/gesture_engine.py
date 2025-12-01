@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class GestureEngine:
     """
     Encapsulates MediaPipe Hands model and gesture recognition logic.
-    Identifies gestures based on hand landmark geometry.
+    Identifies static gestures based on hand landmark geometry.
+    
+    v2.0.0: Simplified to 10 static gestures only
     """
     
     def __init__(self):
@@ -30,21 +32,24 @@ class GestureEngine:
             min_tracking_confidence=config.MIN_TRACKING_CONFIDENCE
         )
         
-        # Gesture names
+        # Gesture names (Chinese)
         self.GESTURES = {
-            'OPEN_PALM': 'Open Palm',
-            'CLOSED_FIST': 'Closed Fist',
-            'POINTING_UP': 'Pointing Up',
-            'OK_SIGN': 'OK Sign',
-            'NONE': 'None'
+            'OPEN_PALM': '张开手掌',
+            'CLOSED_FIST': '握拳',
+            'POINTING_UP': '食指向上',
+            'OK_SIGN': 'OK手势',
+            'THUMBS_UP': '点赞',
+            'THUMBS_DOWN': '点踩',
+            'PEACE': '剪刀手',
+            'THREE_FINGERS': '三指',
+            'FOUR_FINGERS': '四指',
+            'PINCH': '捏合',
+            'NONE': '无手势'
         }
         
-        # Store last detected hand landmarks for motion detection
-        self.last_hand_landmarks = None
-        
         # Log enabled gestures
-        enabled_list = [name for name, enabled in config.ENABLED_GESTURES.items() if enabled]
-        logger.info(f"Enabled static gestures: {', '.join(enabled_list) if enabled_list else 'None'}")
+        enabled_list = [self.GESTURES[name] for name, enabled in config.ENABLED_GESTURES.items() if enabled]
+        logger.info(f"启用的手势: {', '.join(enabled_list) if enabled_list else '无'}")
     
     def process_frame(self, frame: np.ndarray) -> Tuple[Optional[str], float]:
         """
@@ -61,31 +66,32 @@ class GestureEngine:
             # Convert BGR to RGB for MediaPipe
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
+            # Ensure contiguous array for MediaPipe
+            rgb_frame = np.ascontiguousarray(rgb_frame)
+            
             # Process the frame
             results = self.hands.process(rgb_frame)
             
             if not results.multi_hand_landmarks:
-                logger.debug("No hand detected in frame")
-                self.last_hand_landmarks = None
+                logger.debug("未检测到手部")
                 return None, 0.0
             
             # Get the first hand landmarks
             hand_landmarks = results.multi_hand_landmarks[0]
-            self.last_hand_landmarks = hand_landmarks  # Save for motion detection
             
             # Recognize gesture based on landmarks
             gesture, confidence = self._recognize_gesture(hand_landmarks)
             
-            logger.debug(f"Detected gesture: {gesture} (confidence: {confidence:.2f})")
+            logger.debug(f"检测到手势: {gesture} (置信度: {confidence:.2f})")
             return gesture, confidence
             
         except Exception as e:
-            logger.error(f"Error processing frame: {e}")
+            logger.error(f"处理帧时出错: {e}")
             return None, 0.0
     
     def _recognize_gesture(self, landmarks) -> Tuple[str, float]:
         """
-        Recognize gesture based on hand landmark positions.
+        Recognize gesture based on hand landmark positions (priority order).
         
         Landmark indices (MediaPipe Hands):
         - 0: WRIST
@@ -96,53 +102,179 @@ class GestureEngine:
         - 17-20: PINKY (MCP, PIP, DIP, TIP)
         """
         lm = landmarks.landmark
-        
-        # Check if all fingers are extended (OPEN_PALM)
         fingers_extended = self._get_fingers_extended(lm)
         
-        if all(fingers_extended):
-            detected_gesture = 'OPEN_PALM'
-            confidence = 0.95
-            # 过滤：如果该手势未启用，返回 NONE
-            if not config.ENABLED_GESTURES.get(detected_gesture, False):
-                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
-                return 'NONE', 0.5
-            return detected_gesture, confidence
-        
-        # Check if all fingers are closed (CLOSED_FIST)
-        if not any(fingers_extended):
-            detected_gesture = 'CLOSED_FIST'
-            confidence = 0.95
-            # 过滤：如果该手势未启用，返回 NONE
-            if not config.ENABLED_GESTURES.get(detected_gesture, False):
-                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
-                return 'NONE', 0.5
-            return detected_gesture, confidence
-        
-        # Check if only index finger is extended (POINTING_UP)
-        if (fingers_extended[1] and  # Index extended
-            not fingers_extended[2] and  # Middle closed
-            not fingers_extended[3] and  # Ring closed
-            not fingers_extended[4]):    # Pinky closed
-            detected_gesture = 'POINTING_UP'
-            confidence = 0.9
-            # 过滤：如果该手势未启用，返回 NONE
-            if not config.ENABLED_GESTURES.get(detected_gesture, False):
-                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
-                return 'NONE', 0.5
-            return detected_gesture, confidence
-        
-        # Check for OK sign (thumb and index tips touching, other fingers extended)
+        # Priority 1: OK sign (special detection needed)
         if self._is_ok_sign(lm):
-            detected_gesture = 'OK_SIGN'
-            confidence = 0.85
-            # 过滤：如果该手势未启用，返回 NONE
-            if not config.ENABLED_GESTURES.get(detected_gesture, False):
-                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
-                return 'NONE', 0.5
-            return detected_gesture, confidence
+            return self._check_and_return('OK_SIGN', 0.85)
+        
+        # Priority 2: Pinch gesture
+        if self._is_pinch(lm):
+            return self._check_and_return('PINCH', 0.85)
+        
+        # Priority 3: Thumbs up/down (check thumb direction)
+        if self._is_thumbs_up(lm):
+            return self._check_and_return('THUMBS_UP', 0.9)
+        
+        if self._is_thumbs_down(lm):
+            return self._check_and_return('THUMBS_DOWN', 0.9)
+        
+        # Priority 4: Specific finger combinations
+        if self._is_peace(lm):
+            return self._check_and_return('PEACE', 0.9)
+        
+        if self._is_three_fingers(lm):
+            return self._check_and_return('THREE_FINGERS', 0.9)
+        
+        if self._is_four_fingers(lm):
+            return self._check_and_return('FOUR_FINGERS', 0.9)
+        
+        # Priority 5: All fingers extended
+        if all(fingers_extended):
+            return self._check_and_return('OPEN_PALM', 0.95)
+        
+        # Priority 6: All fingers closed
+        if not any(fingers_extended):
+            return self._check_and_return('CLOSED_FIST', 0.95)
+        
+        # Priority 7: Only index finger extended
+        if (fingers_extended[1] and not fingers_extended[2] and 
+            not fingers_extended[3] and not fingers_extended[4]):
+            return self._check_and_return('POINTING_UP', 0.9)
         
         return 'NONE', 0.5
+    
+    def _check_and_return(self, gesture: str, confidence: float) -> Tuple[str, float]:
+        """Check if gesture is enabled in config."""
+        if not config.ENABLED_GESTURES.get(gesture, False):
+            logger.debug(f"手势 {gesture} 已检测但未启用")
+            return 'NONE', 0.5
+        return gesture, confidence
+    
+    def _is_thumbs_up(self, lm) -> bool:
+        """
+        Thumbs up: Thumb pointing up, other fingers closed.
+        
+        Detection:
+        - Thumb extended with tip Y < mcp Y (pointing up)
+        - Other four fingers closed
+        """
+        thumb_tip = lm[4]
+        thumb_mcp = lm[2]
+        wrist = lm[0]
+        
+        # Thumb pointing up (tip Y < mcp Y, Y increases downward)
+        thumb_up = thumb_tip.y < thumb_mcp.y
+        
+        # Thumb must be extended
+        thumb_extended = self._distance(thumb_tip, wrist) > self._distance(thumb_mcp, wrist)
+        
+        # Other fingers closed
+        fingers = self._get_fingers_extended(lm)
+        other_fingers_closed = not any(fingers[1:])  # index, middle, ring, pinky
+        
+        return thumb_up and thumb_extended and other_fingers_closed
+    
+    def _is_thumbs_down(self, lm) -> bool:
+        """
+        Thumbs down: Thumb pointing down, other fingers closed.
+        
+        Detection:
+        - Thumb extended with tip Y > mcp Y (pointing down)
+        - Other four fingers closed
+        """
+        thumb_tip = lm[4]
+        thumb_mcp = lm[2]
+        wrist = lm[0]
+        
+        # Thumb pointing down (tip Y > mcp Y)
+        thumb_down = thumb_tip.y > thumb_mcp.y
+        
+        # Thumb must be extended
+        thumb_extended = self._distance(thumb_tip, wrist) > self._distance(thumb_mcp, wrist)
+        
+        # Other fingers closed
+        fingers = self._get_fingers_extended(lm)
+        other_fingers_closed = not any(fingers[1:])
+        
+        return thumb_down and thumb_extended and other_fingers_closed
+    
+    def _is_peace(self, lm) -> bool:
+        """
+        Peace/Victory sign: Index and middle fingers extended, others closed.
+        
+        Detection:
+        - Index and middle fingers extended
+        - Thumb, ring, pinky closed
+        """
+        fingers = self._get_fingers_extended(lm)
+        
+        # Index and middle extended
+        index_middle_extended = fingers[1] and fingers[2]
+        
+        # Thumb, ring, pinky closed
+        others_closed = not fingers[0] and not fingers[3] and not fingers[4]
+        
+        return index_middle_extended and others_closed
+    
+    def _is_three_fingers(self, lm) -> bool:
+        """
+        Three fingers: Thumb, index, and middle fingers extended.
+        
+        Detection:
+        - Thumb, index, middle extended
+        - Ring and pinky closed
+        """
+        fingers = self._get_fingers_extended(lm)
+        
+        # First three fingers extended
+        three_extended = fingers[0] and fingers[1] and fingers[2]
+        
+        # Ring and pinky closed
+        others_closed = not fingers[3] and not fingers[4]
+        
+        return three_extended and others_closed
+    
+    def _is_four_fingers(self, lm) -> bool:
+        """
+        Four fingers: Index, middle, ring, and pinky extended, thumb closed.
+        
+        Detection:
+        - Index, middle, ring, pinky extended
+        - Thumb closed
+        """
+        fingers = self._get_fingers_extended(lm)
+        
+        # Four fingers extended (not including thumb)
+        four_extended = (fingers[1] and fingers[2] and 
+                        fingers[3] and fingers[4])
+        
+        # Thumb closed
+        thumb_closed = not fingers[0]
+        
+        return four_extended and thumb_closed
+    
+    def _is_pinch(self, lm) -> bool:
+        """
+        Pinch gesture: Thumb and index fingertips close together, others closed.
+        Similar to OK but other fingers are closed.
+        
+        Detection:
+        - Thumb and index tips very close (< 0.05 distance)
+        - Middle, ring, pinky closed
+        """
+        thumb_tip = lm[4]
+        index_tip = lm[8]
+        
+        # Thumb and index tips close together
+        distance = self._distance(thumb_tip, index_tip)
+        
+        fingers = self._get_fingers_extended(lm)
+        
+        # Middle, ring, pinky closed
+        others_closed = not fingers[2] and not fingers[3] and not fingers[4]
+        
+        return distance < 0.05 and others_closed
     
     def _get_fingers_extended(self, landmarks) -> list:
         """
@@ -154,8 +286,7 @@ class GestureEngine:
         """
         fingers = []
         
-        # Thumb: Compare tip (4) with IP joint (3) in x-axis (for side view)
-        # If thumb tip is significantly away from palm center, it's extended
+        # Thumb: Compare tip (4) with MCP joint (2) distance from wrist
         thumb_tip = landmarks[4]
         thumb_ip = landmarks[3]
         thumb_mcp = landmarks[2]
@@ -201,7 +332,7 @@ class GestureEngine:
         fingers = self._get_fingers_extended(landmarks)
         
         # OK sign: thumb and index close, middle/ring/pinky extended
-        if (tips_distance < 0.05 and  # Tips are touching (threshold tuned experimentally)
+        if (tips_distance < 0.05 and  # Tips are touching
             fingers[2] and  # Middle extended
             fingers[3] and  # Ring extended
             fingers[4]):    # Pinky extended
@@ -220,15 +351,6 @@ class GestureEngine:
             (point1.y - point2.y) ** 2 +
             (point1.z - point2.z) ** 2
         )
-    
-    def get_hand_landmarks(self):
-        """
-        Get the last detected hand landmarks for motion detection.
-        
-        Returns:
-            Hand landmarks object or None if no hand detected
-        """
-        return self.last_hand_landmarks
     
     def release(self):
         """Clean up resources."""
