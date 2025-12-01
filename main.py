@@ -60,11 +60,11 @@ class GestureBuffer:
     
     def __init__(
         self,
-        stable_duration: float = config.GESTURE_STABLE_DURATION,
+        min_detections: int = config.GESTURE_MIN_DETECTIONS,
         cooldown: float = config.GESTURE_COOLDOWN,
         confidence_threshold: float = config.GESTURE_CONFIDENCE_THRESHOLD
     ):
-        self.stable_duration = stable_duration
+        self.min_detections = min_detections
         self.cooldown = cooldown
         self.confidence_threshold = confidence_threshold
         
@@ -122,16 +122,20 @@ class GestureBuffer:
     def _is_gesture_stable(self, gesture: str, current_time: float) -> bool:
         """
         Check if a gesture has been consistently detected.
-        Uses count-based approach instead of strict time window.
-        """
-        # Minimum consecutive detections required (reduced for faster response)
-        MIN_DETECTIONS = 2
+        Uses count-based approach for stability detection.
         
-        if len(self.gesture_history) < MIN_DETECTIONS:
+        Args:
+            gesture: The gesture to check
+            current_time: Current timestamp
+            
+        Returns:
+            True if gesture has been detected consistently for min_detections frames
+        """
+        if len(self.gesture_history) < self.min_detections:
             return False
         
         # Check last N detections - are they all the same gesture?
-        recent_detections = list(self.gesture_history)[-MIN_DETECTIONS:]
+        recent_detections = list(self.gesture_history)[-self.min_detections:]
         
         all_same_gesture = all(
             d['gesture'] == gesture and d['confidence'] >= self.confidence_threshold
@@ -147,13 +151,13 @@ class GestureBuffer:
         # Debug logging (only occasionally to reduce spam)
         if len(self.gesture_history) % 10 == 0:
             logger.info(f"Stability check for {gesture}: "
-                       f"last_{MIN_DETECTIONS}={all_same_gesture}, "
+                       f"last_{self.min_detections}={all_same_gesture}, "
                        f"time_span={time_span:.2f}s, "
                        f"buffer_size={len(self.gesture_history)}")
         
         if all_same_gesture:
             self.current_stable_gesture = gesture
-            logger.info(f"✓ Gesture {gesture} is STABLE (last {MIN_DETECTIONS} detections consistent)")
+            logger.info(f"✓ Gesture {gesture} is STABLE (last {self.min_detections} detections consistent)")
             return True
         
         return False
@@ -326,6 +330,7 @@ def main():
         try:
             expression_engine = ExpressionEngine()
             expression_buffer = GestureBuffer(
+                min_detections=config.EXPRESSION_MIN_DETECTIONS,
                 confidence_threshold=config.EXPRESSION_CONFIDENCE_THRESHOLD
             )
             logger.info("Expression engine initialized")

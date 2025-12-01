@@ -1,5 +1,5 @@
 name: "MediaPipe Gesture Control"
-version: "1.0.8"
+version: "1.0.9"
 slug: mediapipe_gesture_control
 description: "Real-time hand gesture & expression recognition with motion detection"
 url: "https://github.com/yanfeng17/shoushi-HA"
@@ -23,13 +23,14 @@ options:
   frame_height: 240
   target_fps: 15
   gesture_confidence_threshold: 0.65
-  gesture_stable_duration: 0.3
+  gesture_min_detections: 2
   gesture_cooldown: 1.5
   rtsp_reconnect_delay: 5
   log_level: "INFO"
   skip_frames: 1
   enable_expression_detection: true
   expression_confidence_threshold: 0.3
+  expression_min_detections: 2
   debug_visualization: true
   publish_detailed_blendshapes: true
   blendshapes_min_threshold: 0.05
@@ -73,13 +74,14 @@ schema:
   frame_height: int(240,1080)?
   target_fps: int(5,30)?
   gesture_confidence_threshold: float(0.5,1.0)?
-  gesture_stable_duration: float(0.1,5.0)?
+  gesture_min_detections: int(2,10)?
   gesture_cooldown: float(0.5,10.0)?
   rtsp_reconnect_delay: int(1,60)?
   log_level: list(DEBUG|INFO|WARNING|ERROR)?
   skip_frames: int(1,5)?
   enable_expression_detection: bool?
   expression_confidence_threshold: float(0.1,1.0)?
+  expression_min_detections: int(2,10)?
   debug_visualization: bool?
   publish_detailed_blendshapes: bool?
   blendshapes_min_threshold: float(0.01,0.5)?

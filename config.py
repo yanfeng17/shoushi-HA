@@ -24,12 +24,13 @@ SKIP_FRAMES = int(os.getenv('SKIP_FRAMES', '1'))  # Process every Nth frame (1=a
 
 # Gesture Recognition Configuration
 GESTURE_CONFIDENCE_THRESHOLD = float(os.getenv('GESTURE_CONFIDENCE_THRESHOLD', '0.65'))
-GESTURE_STABLE_DURATION = float(os.getenv('GESTURE_STABLE_DURATION', '0.3'))  # seconds
+GESTURE_MIN_DETECTIONS = int(os.getenv('GESTURE_MIN_DETECTIONS', '2'))  # consecutive detections
 GESTURE_COOLDOWN = float(os.getenv('GESTURE_COOLDOWN', '1.5'))  # seconds
 
 # Expression Detection Configuration
 ENABLE_EXPRESSION = os.getenv('ENABLE_EXPRESSION_DETECTION', 'true').lower() == 'true'
 EXPRESSION_CONFIDENCE_THRESHOLD = float(os.getenv('EXPRESSION_CONFIDENCE_THRESHOLD', '0.3'))
+EXPRESSION_MIN_DETECTIONS = int(os.getenv('EXPRESSION_MIN_DETECTIONS', '2'))  # consecutive detections
 
 # Debug and Visualization
 DEBUG_VISUALIZATION = os.getenv('DEBUG_VISUALIZATION', 'true').lower() == 'true'
