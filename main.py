@@ -304,7 +304,7 @@ class VideoStreamProcessor:
 def main():
     """Main application loop."""
     logger.info("="*60)
-    logger.info("║ MediaPipe Gesture Control v1.0.7")
+    logger.info("║ MediaPipe Gesture Control v1.0.10")
     logger.info("║ Build: 2025-11-30 - EXPRESSION DETECTION")
     logger.info("="*60)
     logger.info("Starting Gesture Recognition System")
