@@ -38,6 +38,13 @@ class GestureEngine:
             'OK_SIGN': 'OK Sign',
             'NONE': 'None'
         }
+        
+        # Store last detected hand landmarks for motion detection
+        self.last_hand_landmarks = None
+        
+        # Log enabled gestures
+        enabled_list = [name for name, enabled in config.ENABLED_GESTURES.items() if enabled]
+        logger.info(f"Enabled static gestures: {', '.join(enabled_list) if enabled_list else 'None'}")
     
     def process_frame(self, frame: np.ndarray) -> Tuple[Optional[str], float]:
         """
@@ -59,10 +66,12 @@ class GestureEngine:
             
             if not results.multi_hand_landmarks:
                 logger.debug("No hand detected in frame")
+                self.last_hand_landmarks = None
                 return None, 0.0
             
             # Get the first hand landmarks
             hand_landmarks = results.multi_hand_landmarks[0]
+            self.last_hand_landmarks = hand_landmarks  # Save for motion detection
             
             # Recognize gesture based on landmarks
             gesture, confidence = self._recognize_gesture(hand_landmarks)
@@ -92,22 +101,46 @@ class GestureEngine:
         fingers_extended = self._get_fingers_extended(lm)
         
         if all(fingers_extended):
-            return 'OPEN_PALM', 0.95
+            detected_gesture = 'OPEN_PALM'
+            confidence = 0.95
+            # 过滤：如果该手势未启用，返回 NONE
+            if not config.ENABLED_GESTURES.get(detected_gesture, False):
+                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
+                return 'NONE', 0.5
+            return detected_gesture, confidence
         
         # Check if all fingers are closed (CLOSED_FIST)
         if not any(fingers_extended):
-            return 'CLOSED_FIST', 0.95
+            detected_gesture = 'CLOSED_FIST'
+            confidence = 0.95
+            # 过滤：如果该手势未启用，返回 NONE
+            if not config.ENABLED_GESTURES.get(detected_gesture, False):
+                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
+                return 'NONE', 0.5
+            return detected_gesture, confidence
         
         # Check if only index finger is extended (POINTING_UP)
         if (fingers_extended[1] and  # Index extended
             not fingers_extended[2] and  # Middle closed
             not fingers_extended[3] and  # Ring closed
             not fingers_extended[4]):    # Pinky closed
-            return 'POINTING_UP', 0.9
+            detected_gesture = 'POINTING_UP'
+            confidence = 0.9
+            # 过滤：如果该手势未启用，返回 NONE
+            if not config.ENABLED_GESTURES.get(detected_gesture, False):
+                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
+                return 'NONE', 0.5
+            return detected_gesture, confidence
         
         # Check for OK sign (thumb and index tips touching, other fingers extended)
         if self._is_ok_sign(lm):
-            return 'OK_SIGN', 0.85
+            detected_gesture = 'OK_SIGN'
+            confidence = 0.85
+            # 过滤：如果该手势未启用，返回 NONE
+            if not config.ENABLED_GESTURES.get(detected_gesture, False):
+                logger.debug(f"Gesture {detected_gesture} detected but disabled in config")
+                return 'NONE', 0.5
+            return detected_gesture, confidence
         
         return 'NONE', 0.5
     
@@ -187,6 +220,15 @@ class GestureEngine:
             (point1.y - point2.y) ** 2 +
             (point1.z - point2.z) ** 2
         )
+    
+    def get_hand_landmarks(self):
+        """
+        Get the last detected hand landmarks for motion detection.
+        
+        Returns:
+            Hand landmarks object or None if no hand detected
+        """
+        return self.last_hand_landmarks
     
     def release(self):
         """Clean up resources."""

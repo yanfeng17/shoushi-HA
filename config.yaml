@@ -1,7 +1,7 @@
 name: "MediaPipe Gesture Control"
-version: "1.0.7"
+version: "1.0.8"
 slug: mediapipe_gesture_control
-description: "Real-time hand gesture recognition using MediaPipe with MQTT integration"
+description: "Real-time hand gesture & expression recognition with motion detection"
 url: "https://github.com/yanfeng17/shoushi-HA"
 arch:
   - aarch64
@@ -39,6 +39,30 @@ options:
   frown_threshold: 0.3
   blink_threshold: 0.7
   pucker_threshold: 0.4
+  enable_open_palm: true
+  enable_closed_fist: true
+  enable_pointing_up: true
+  enable_ok_sign: true
+  enable_wave: true
+  enable_swipe_left: false
+  enable_swipe_right: false
+  enable_swipe_up: false
+  enable_swipe_down: false
+  enable_smile: true
+  enable_genuine_smile: true
+  enable_mouth_open: true
+  enable_mouth_wide_open: false
+  enable_surprised: true
+  enable_yawning: true
+  enable_frown: true
+  enable_pucker: false
+  enable_wink_left: false
+  enable_wink_right: false
+  enable_blink_both: false
+  motion_detection_window: 30
+  wave_min_cycles: 2
+  swipe_min_distance: 0.25
+  swipe_max_duration: 0.8
 schema:
   rtsp_url: str
   mqtt_broker: str
@@ -65,3 +89,27 @@ schema:
   frown_threshold: float(0.1,1.0)?
   blink_threshold: float(0.5,1.0)?
   pucker_threshold: float(0.1,1.0)?
+  enable_open_palm: bool?
+  enable_closed_fist: bool?
+  enable_pointing_up: bool?
+  enable_ok_sign: bool?
+  enable_wave: bool?
+  enable_swipe_left: bool?
+  enable_swipe_right: bool?
+  enable_swipe_up: bool?
+  enable_swipe_down: bool?
+  enable_smile: bool?
+  enable_genuine_smile: bool?
+  enable_mouth_open: bool?
+  enable_mouth_wide_open: bool?
+  enable_surprised: bool?
+  enable_yawning: bool?
+  enable_frown: bool?
+  enable_pucker: bool?
+  enable_wink_left: bool?
+  enable_wink_right: bool?
+  enable_blink_both: bool?
+  motion_detection_window: int(10,60)?
+  wave_min_cycles: int(2,5)?
+  swipe_min_distance: float(0.1,0.5)?
+  swipe_max_duration: float(0.3,2.0)?

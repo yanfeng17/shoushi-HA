@@ -10,9 +10,10 @@ MQTT_USERNAME = os.getenv('MQTT_USERNAME', '')
 MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', '')
 MQTT_CLIENT_ID = os.getenv('MQTT_CLIENT_ID', 'gesture_control')
 
-# MQTT Topics
+# MQTT Topics (分离手势和表情)
 MQTT_DISCOVERY_PREFIX = 'homeassistant'
-MQTT_STATE_TOPIC = 'mediapipe/gesture/state'
+MQTT_GESTURE_STATE_TOPIC = 'mediapipe/gesture/state'
+MQTT_EXPRESSION_STATE_TOPIC = 'mediapipe/expression/state'
 MQTT_DEVICE_NAME = 'gesture_control'
 
 # Video Processing Configuration
@@ -50,3 +51,41 @@ RTSP_RECONNECT_DELAY = int(os.getenv('RTSP_RECONNECT_DELAY', '5'))  # seconds
 MAX_NUM_HANDS = 1
 MIN_DETECTION_CONFIDENCE = 0.5  # Lower for faster detection
 MIN_TRACKING_CONFIDENCE = 0.5
+
+# 静态手势开关
+ENABLED_GESTURES = {
+    'OPEN_PALM': os.getenv('ENABLE_OPEN_PALM', 'true').lower() == 'true',
+    'CLOSED_FIST': os.getenv('ENABLE_CLOSED_FIST', 'true').lower() == 'true',
+    'POINTING_UP': os.getenv('ENABLE_POINTING_UP', 'true').lower() == 'true',
+    'OK_SIGN': os.getenv('ENABLE_OK_SIGN', 'true').lower() == 'true',
+}
+
+# 动态手势开关
+ENABLED_MOTION_GESTURES = {
+    'WAVE': os.getenv('ENABLE_WAVE', 'true').lower() == 'true',
+    'SWIPE_LEFT': os.getenv('ENABLE_SWIPE_LEFT', 'false').lower() == 'true',
+    'SWIPE_RIGHT': os.getenv('ENABLE_SWIPE_RIGHT', 'false').lower() == 'true',
+    'SWIPE_UP': os.getenv('ENABLE_SWIPE_UP', 'false').lower() == 'true',
+    'SWIPE_DOWN': os.getenv('ENABLE_SWIPE_DOWN', 'false').lower() == 'true',
+}
+
+# 表情开关
+ENABLED_EXPRESSIONS = {
+    'SMILE': os.getenv('ENABLE_SMILE', 'true').lower() == 'true',
+    'GENUINE_SMILE': os.getenv('ENABLE_GENUINE_SMILE', 'true').lower() == 'true',
+    'MOUTH_OPEN': os.getenv('ENABLE_MOUTH_OPEN', 'true').lower() == 'true',
+    'MOUTH_WIDE_OPEN': os.getenv('ENABLE_MOUTH_WIDE_OPEN', 'false').lower() == 'true',
+    'SURPRISED': os.getenv('ENABLE_SURPRISED', 'true').lower() == 'true',
+    'YAWNING': os.getenv('ENABLE_YAWNING', 'true').lower() == 'true',
+    'FROWN': os.getenv('ENABLE_FROWN', 'true').lower() == 'true',
+    'PUCKER': os.getenv('ENABLE_PUCKER', 'false').lower() == 'true',
+    'WINK_LEFT': os.getenv('ENABLE_WINK_LEFT', 'false').lower() == 'true',
+    'WINK_RIGHT': os.getenv('ENABLE_WINK_RIGHT', 'false').lower() == 'true',
+    'BLINK_BOTH': os.getenv('ENABLE_BLINK_BOTH', 'false').lower() == 'true',
+}
+
+# 动态手势参数
+MOTION_DETECTION_WINDOW = int(os.getenv('MOTION_DETECTION_WINDOW', '30'))
+WAVE_MIN_CYCLES = int(os.getenv('WAVE_MIN_CYCLES', '2'))
+SWIPE_MIN_DISTANCE = float(os.getenv('SWIPE_MIN_DISTANCE', '0.25'))
+SWIPE_MAX_DURATION = float(os.getenv('SWIPE_MAX_DURATION', '0.8'))

@@ -12,6 +12,7 @@ import logging
 
 import config
 from src.gesture_engine import GestureEngine
+from src.motion_detector import MotionDetector
 from src.mqtt_client import MQTTClient
 
 # Additional suppression for OpenCV
@@ -313,6 +314,7 @@ def main():
     
     # Initialize components
     gesture_engine = GestureEngine()
+    motion_detector = MotionDetector()  # 动态手势检测器
     mqtt_client = MQTTClient()
     gesture_buffer = GestureBuffer()
     video_processor = VideoStreamProcessor(config.RTSP_URL)
@@ -400,10 +402,54 @@ def main():
                 fps_start_time = time.time()
                 fps_frame_count = 0
             
-            # Process frame with gesture engine
+            # 1. Process static gesture recognition
             gesture, gesture_confidence = gesture_engine.process_frame(frame)
             
-            # Process frame with expression engine (if enabled)
+            # 2. Process dynamic gesture (motion detection)
+            motion_gesture = None
+            motion_confidence = 0.0
+            
+            if gesture:  # Hand detected
+                # Get hand landmarks for motion tracking
+                hand_landmarks = gesture_engine.get_hand_landmarks()
+                if hand_landmarks:
+                    # Add wrist position to motion detector
+                    wrist = hand_landmarks.landmark[0]
+                    motion_detector.add_hand_position(wrist, time.time())
+                    
+                    # Detect motion gestures
+                    motion_gesture, motion_confidence = motion_detector.detect_motion()
+            else:
+                # No hand detected, reset motion detector
+                motion_detector.reset()
+            
+            # 3. Determine final gesture (priority: motion > static)
+            final_gesture = None
+            final_confidence = 0.0
+            gesture_type = "static"
+            
+            if motion_gesture:
+                # Motion gesture has priority
+                final_gesture = motion_gesture
+                final_confidence = motion_confidence
+                gesture_type = "motion"
+            elif gesture and gesture != 'NONE':
+                # Use static gesture if no motion detected
+                final_gesture = gesture
+                final_confidence = gesture_confidence
+                gesture_type = "static"
+            
+            # 4. Check gesture buffer and trigger if stable
+            if final_gesture:
+                triggered_gesture = gesture_buffer.add_detection(final_gesture, final_confidence)
+                if triggered_gesture:
+                    # Publish to gesture sensor
+                    mqtt_client.publish_gesture(triggered_gesture, final_confidence, gesture_type)
+                    logger.info(f"✓ GESTURE TRIGGERED: {triggered_gesture} ({gesture_type}, confidence: {final_confidence:.2f})")
+            else:
+                gesture_buffer.add_detection(None, 0.0)
+            
+            # 5. Process expression (independent from gestures)
             expression = None
             expression_confidence = 0.0
             blendshapes = {}
@@ -413,15 +459,33 @@ def main():
                 except Exception as e:
                     logger.error(f"Error in expression detection: {e}")
             
-            # Debug visualization (if enabled)
+            # 6. Check expression buffer and trigger if stable (separate from gesture)
+            if expression_buffer and expression:
+                triggered_expression = expression_buffer.add_detection(expression, expression_confidence)
+                if triggered_expression and triggered_expression != 'NEUTRAL':
+                    # Publish to expression sensor (separate from gesture)
+                    mqtt_client.publish_expression(
+                        expression=triggered_expression,
+                        confidence=expression_confidence,
+                        blendshapes=blendshapes if config.PUBLISH_DETAILED_BLENDSHAPES else None
+                    )
+                    logger.info(f"✓ EXPRESSION TRIGGERED: {triggered_expression} (confidence: {expression_confidence:.2f})")
+            elif expression_buffer:
+                expression_buffer.add_detection(None, 0.0)
+            
+            # 7. Debug visualization (if enabled)
             if visualizer:
                 try:
+                    # Display both static and motion gestures
+                    display_gesture = motion_gesture if motion_gesture else gesture
+                    display_confidence = motion_confidence if motion_gesture else gesture_confidence
+                    
                     frame = visualizer.draw_debug_overlay(
                         frame=frame,
                         fps=current_fps,
                         frame_count=video_processor.frame_count,
-                        gesture=gesture,
-                        gesture_confidence=gesture_confidence,
+                        gesture=display_gesture,
+                        gesture_confidence=display_confidence,
                         expression=expression,
                         expression_confidence=expression_confidence,
                         blendshapes=blendshapes,
@@ -430,37 +494,15 @@ def main():
                 except Exception as e:
                     logger.error(f"Error in visualization: {e}")
             
-            # Log detection for debugging (every 20 processed frames)
+            # 8. Log detection for debugging (every 20 processed frames)
             if video_processor.processed_frame_count % 20 == 0 or video_processor.processed_frame_count == 1:
                 parts = [f"[Processed {video_processor.processed_frame_count}]"]
-                if gesture:
-                    parts.append(f"Hand: {gesture} ({gesture_confidence:.2f})")
+                if final_gesture:
+                    parts.append(f"Gesture: {final_gesture} ({gesture_type}, {final_confidence:.2f})")
                 if expression:
-                    parts.append(f"Face: {expression} ({expression_confidence:.2f})")
+                    parts.append(f"Expression: {expression} ({expression_confidence:.2f})")
                 if parts:
                     logger.info(" | ".join(parts))
-            
-            # Add detections to buffers and check if should trigger
-            triggered_gesture = gesture_buffer.add_detection(gesture, gesture_confidence)
-            triggered_expression = None
-            if expression_buffer:
-                triggered_expression = expression_buffer.add_detection(expression, expression_confidence)
-            
-            # Publish to MQTT (prioritize gesture over expression if both trigger)
-            triggered_state = triggered_gesture or triggered_expression
-            if triggered_state:
-                state_type = "gesture" if triggered_gesture else "expression"
-                confidence = gesture_confidence if triggered_gesture else expression_confidence
-                
-                logger.info(f"✓ {state_type.upper()} TRIGGERED: {triggered_state} (confidence: {confidence:.2f})")
-                
-                # Publish with optional blendshapes data
-                mqtt_client.publish_state(
-                    state=triggered_state,
-                    confidence=confidence,
-                    state_type=state_type,
-                    blendshapes=blendshapes if config.PUBLISH_DETAILED_BLENDSHAPES else None
-                )
             
             # Small sleep to prevent CPU overload
             time.sleep(0.01)

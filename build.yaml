@@ -4,3 +4,5 @@ build_from:
   armhf: python:3.11-slim-bookworm
   armv7: python:3.11-slim-bookworm
   i386: python:3.11-slim-bookworm
+args:
+  version: "1.0.8"

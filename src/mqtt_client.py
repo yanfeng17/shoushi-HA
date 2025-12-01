@@ -66,33 +66,43 @@ class MQTTClient:
     
     def _send_discovery_config(self):
         """
-        Send Home Assistant MQTT Discovery configuration.
-        Creates a sensor entity that displays the current gesture.
+        Send Home Assistant MQTT Discovery configuration for both sensors.
+        Creates two separate sensor entities:
+        - sensor.gesture_control: Hand gestures (static + motion)
+        - sensor.expression_control: Facial expressions
         """
         if self.discovery_sent:
             return
         
-        # Discovery topic follows pattern: <discovery_prefix>/sensor/<device_name>/config
-        discovery_topic = f"{config.MQTT_DISCOVERY_PREFIX}/sensor/{config.MQTT_DEVICE_NAME}/config"
+        # Send gesture sensor discovery
+        self._send_gesture_discovery()
         
-        # Discovery payload
+        # Send expression sensor discovery (if enabled)
+        if config.ENABLE_EXPRESSION:
+            self._send_expression_discovery()
+        
+        self.discovery_sent = True
+    
+    def _send_gesture_discovery(self):
+        """Send discovery config for gesture sensor."""
+        discovery_topic = f"{config.MQTT_DISCOVERY_PREFIX}/sensor/gesture_control/config"
+        
         discovery_payload = {
             "name": "Gesture Control",
-            "unique_id": f"{config.MQTT_DEVICE_NAME}_sensor",
-            "state_topic": config.MQTT_STATE_TOPIC,
+            "unique_id": "gesture_control_sensor",
+            "state_topic": config.MQTT_GESTURE_STATE_TOPIC,
             "value_template": "{{ value_json.state }}",
-            "json_attributes_topic": config.MQTT_STATE_TOPIC,
+            "json_attributes_topic": config.MQTT_GESTURE_STATE_TOPIC,
             "icon": "mdi:hand-back-right",
             "device": {
                 "identifiers": [config.MQTT_DEVICE_NAME],
                 "name": "MediaPipe Gesture & Expression Recognition",
-                "model": "Hand Gesture & Face Expression Detector",
+                "model": "Hand Gesture & Face Expression Detector v1.0.8",
                 "manufacturer": "Custom",
-                "sw_version": "1.0.7"
+                "sw_version": "1.0.8"
             }
         }
         
-        # Publish discovery config with retain flag
         result = self.client.publish(
             discovery_topic,
             json.dumps(discovery_payload),
@@ -101,29 +111,90 @@ class MQTTClient:
         )
         
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
-            logger.info(f"Home Assistant discovery config sent to {discovery_topic}")
-            self.discovery_sent = True
+            logger.info(f"Gesture sensor discovery config sent to {discovery_topic}")
         else:
-            logger.error(f"Failed to send discovery config: {result.rc}")
+            logger.error(f"Failed to send gesture discovery config: {result.rc}")
     
-    def publish_state(self, state: str, confidence: float, state_type: str = "gesture", blendshapes: dict = None):
+    def _send_expression_discovery(self):
+        """Send discovery config for expression sensor."""
+        discovery_topic = f"{config.MQTT_DISCOVERY_PREFIX}/sensor/expression_control/config"
+        
+        discovery_payload = {
+            "name": "Expression Control",
+            "unique_id": "expression_control_sensor",
+            "state_topic": config.MQTT_EXPRESSION_STATE_TOPIC,
+            "value_template": "{{ value_json.state }}",
+            "json_attributes_topic": config.MQTT_EXPRESSION_STATE_TOPIC,
+            "icon": "mdi:emoticon-happy",
+            "device": {
+                "identifiers": [config.MQTT_DEVICE_NAME],
+                "name": "MediaPipe Gesture & Expression Recognition",
+                "model": "Hand Gesture & Face Expression Detector v1.0.8",
+                "manufacturer": "Custom",
+                "sw_version": "1.0.8"
+            }
+        }
+        
+        result = self.client.publish(
+            discovery_topic,
+            json.dumps(discovery_payload),
+            qos=1,
+            retain=True
+        )
+        
+        if result.rc == mqtt.MQTT_ERR_SUCCESS:
+            logger.info(f"Expression sensor discovery config sent to {discovery_topic}")
+        else:
+            logger.error(f"Failed to send expression discovery config: {result.rc}")
+    
+    def publish_gesture(self, gesture: str, confidence: float, gesture_type: str = "static"):
         """
-        Publish state (gesture or expression) to MQTT.
+        Publish gesture state to MQTT (separate sensor from expression).
         
         Args:
-            state: State name (e.g., "CLOSED_FIST", "SMILE")
+            gesture: Gesture name (e.g., "CLOSED_FIST", "WAVE", "SWIPE_LEFT")
             confidence: Detection confidence (0.0 to 1.0)
-            state_type: Type of state ("gesture" or "expression")
-            blendshapes: Optional dictionary of blendshape values (for expressions)
+            gesture_type: Type of gesture ("static" or "motion")
         """
         if not self.connected:
-            logger.warning("Not connected to MQTT broker, skipping publish")
+            logger.warning("Not connected to MQTT broker, skipping gesture publish")
             return
         
         payload = {
-            "state": state,
+            "state": gesture,
             "confidence": round(confidence, 3),
-            "type": state_type,
+            "gesture_type": gesture_type,
+            "timestamp": time.time()
+        }
+        
+        result = self.client.publish(
+            config.MQTT_GESTURE_STATE_TOPIC,
+            json.dumps(payload),
+            qos=1,
+            retain=False
+        )
+        
+        if result.rc == mqtt.MQTT_ERR_SUCCESS:
+            logger.debug(f"Published gesture: {gesture} ({gesture_type}, confidence: {confidence:.2f})")
+        else:
+            logger.error(f"Failed to publish gesture: {result.rc}")
+    
+    def publish_expression(self, expression: str, confidence: float, blendshapes: dict = None):
+        """
+        Publish expression state to MQTT (separate sensor from gesture).
+        
+        Args:
+            expression: Expression name (e.g., "SMILE", "SURPRISED")
+            confidence: Detection confidence (0.0 to 1.0)
+            blendshapes: Optional dictionary of blendshape values
+        """
+        if not self.connected:
+            logger.warning("Not connected to MQTT broker, skipping expression publish")
+            return
+        
+        payload = {
+            "state": expression,
+            "confidence": round(confidence, 3),
             "timestamp": time.time()
         }
         
@@ -139,26 +210,16 @@ class MQTTClient:
                 payload["blendshapes"] = filtered_blendshapes
         
         result = self.client.publish(
-            config.MQTT_STATE_TOPIC,
+            config.MQTT_EXPRESSION_STATE_TOPIC,
             json.dumps(payload),
             qos=1,
             retain=False
         )
         
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
-            logger.debug(f"Published {state_type}: {state} (confidence: {confidence:.2f})")
+            logger.debug(f"Published expression: {expression} (confidence: {confidence:.2f})")
         else:
-            logger.error(f"Failed to publish {state_type}: {result.rc}")
-    
-    def publish_gesture(self, gesture: str, confidence: float):
-        """
-        Backward compatibility method for publishing gestures.
-        
-        Args:
-            gesture: Gesture name (e.g., "CLOSED_FIST")
-            confidence: Detection confidence (0.0 to 1.0)
-        """
-        self.publish_state(gesture, confidence, state_type="gesture")
+            logger.error(f"Failed to publish expression: {result.rc}")
     
     def disconnect(self):
         """Disconnect from MQTT broker and clean up."""

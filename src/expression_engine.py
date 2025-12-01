@@ -61,6 +61,10 @@ class ExpressionEngine:
         
         logger.info("Expression Engine initialized successfully")
         logger.info(f"Expression thresholds: {self.thresholds}")
+        
+        # Log enabled expressions
+        enabled_list = [name for name, enabled in config.ENABLED_EXPRESSIONS.items() if enabled]
+        logger.info(f"Enabled expressions: {', '.join(enabled_list) if enabled_list else 'None'}")
     
     def process_frame(self, frame: np.ndarray) -> Tuple[Optional[str], float, Dict[str, float]]:
         """
@@ -150,54 +154,105 @@ class ExpressionEngine:
         if (jaw_open > self.thresholds['jaw_open'] and 
             eye_wide_left > 0.5 and eye_wide_right > 0.5 and
             brow_inner_up > 0.4):
+            detected_expression = 'SURPRISED'
             confidence = (jaw_open + eye_wide_left + eye_wide_right + brow_inner_up) / 4
-            return 'SURPRISED', confidence
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # YAWNING: Wide open jaw with mouth funnel shape
         if (jaw_open > self.thresholds['jaw_open'] and 
             mouth_funnel > 0.3):
+            detected_expression = 'YAWNING'
             confidence = (jaw_open + mouth_funnel) / 2
-            return 'YAWNING', confidence
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # MOUTH_WIDE_OPEN: Just wide open jaw
         if jaw_open > self.thresholds['jaw_open']:
-            return 'MOUTH_WIDE_OPEN', jaw_open
+            detected_expression = 'MOUTH_WIDE_OPEN'
+            confidence = jaw_open
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # MOUTH_OPEN: Open mouth
         if mouth_open > self.thresholds['mouth_open']:
-            return 'MOUTH_OPEN', mouth_open
+            detected_expression = 'MOUTH_OPEN'
+            confidence = mouth_open
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # GENUINE_SMILE: Smile with squinted eyes (Duchenne smile)
         if (mouth_smile > self.thresholds['smile'] and 
             eye_squint_left > 0.3 and eye_squint_right > 0.3):
+            detected_expression = 'GENUINE_SMILE'
             confidence = (mouth_smile + eye_squint_left + eye_squint_right) / 3
-            return 'GENUINE_SMILE', confidence
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # SMILE: Just mouth smile
         if mouth_smile > self.thresholds['smile']:
-            return 'SMILE', mouth_smile
+            detected_expression = 'SMILE'
+            confidence = mouth_smile
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # FROWN: Downturned mouth
         if mouth_frown > self.thresholds['frown']:
-            return 'FROWN', mouth_frown
+            detected_expression = 'FROWN'
+            confidence = mouth_frown
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # BLINK_BOTH: Both eyes closed
         if (eye_blink_left > self.thresholds['blink'] and 
             eye_blink_right > self.thresholds['blink']):
+            detected_expression = 'BLINK_BOTH'
             confidence = (eye_blink_left + eye_blink_right) / 2
-            return 'BLINK_BOTH', confidence
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # WINK_LEFT: Only left eye closed
         if eye_blink_left > self.thresholds['blink']:
-            return 'WINK_LEFT', eye_blink_left
+            detected_expression = 'WINK_LEFT'
+            confidence = eye_blink_left
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # WINK_RIGHT: Only right eye closed
         if eye_blink_right > self.thresholds['blink']:
-            return 'WINK_RIGHT', eye_blink_right
+            detected_expression = 'WINK_RIGHT'
+            confidence = eye_blink_right
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # PUCKER: Puckered lips (kiss face)
         if mouth_pucker > self.thresholds['pucker']:
-            return 'PUCKER', mouth_pucker
+            detected_expression = 'PUCKER'
+            confidence = mouth_pucker
+            if not config.ENABLED_EXPRESSIONS.get(detected_expression, False):
+                logger.debug(f"Expression {detected_expression} detected but disabled in config")
+                return 'NEUTRAL', 0.5
+            return detected_expression, confidence
         
         # NEUTRAL: No significant expression
         return 'NEUTRAL', 0.5
