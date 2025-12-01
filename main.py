@@ -250,6 +250,7 @@ def main():
     logger.info("="*60)
     logger.info("║ MediaPipe 手势识别 v2.0.0")
     logger.info("║ 纯静态手势识别系统")
+    logger.info("║ BUILD: 2025-12-01-FIX")  # 版本标识
     logger.info("="*60)
     logger.info("启动手势识别系统")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
@@ -257,6 +258,7 @@ def main():
     logger.info(f"目标 FPS: {config.TARGET_FPS}")
     logger.info(f"画面大小: {config.FRAME_WIDTH}x{config.FRAME_HEIGHT}")
     logger.info(f"跳帧处理: 每 {config.SKIP_FRAMES} 帧处理一次")
+    logger.info(f"NONE 处理方式: 作为 None 清空 buffer (修复 12s 延迟)")
     logger.info("="*60)
     
     # Initialize components
@@ -313,6 +315,8 @@ def main():
                     mqtt_client.publish_gesture(triggered_gesture, confidence)
             else:
                 # No valid gesture, clear buffer
+                if gesture == 'NONE':
+                    logger.debug("检测到 NONE，作为 None 处理，清空 buffer")
                 gesture_buffer.add_detection(None, 0.0)
             
             # Periodic logging (every 20 frames or 5 seconds)
