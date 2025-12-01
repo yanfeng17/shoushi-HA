@@ -46,8 +46,9 @@ GESTURE_COOLDOWN = float(os.getenv('GESTURE_COOLDOWN', '1.5'))
 # MediaPipe Hands Configuration
 # ============================================================================
 MAX_NUM_HANDS = 1
-MIN_DETECTION_CONFIDENCE = 0.5
-MIN_TRACKING_CONFIDENCE = 0.5
+MODEL_COMPLEXITY = int(os.getenv('MODEL_COMPLEXITY', '1'))  # 0=Lite, 1=Full, 2=Heavy
+MIN_DETECTION_CONFIDENCE = 0.7  # Higher threshold for more accurate detection
+MIN_TRACKING_CONFIDENCE = 0.6   # Higher threshold for stable tracking
 
 # ============================================================================
 # Gesture Toggles (10 static gestures)

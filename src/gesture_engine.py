@@ -23,14 +23,22 @@ class GestureEngine:
     
     def __init__(self):
         self.mp_hands = mp.solutions.hands
-        # Force CPU mode by setting model_complexity to 0 (lightweight)
+        # Use Full model (model_complexity=1) for balanced accuracy and performance
+        # - 0: Lite model (fastest, lowest accuracy)
+        # - 1: Full model (balanced, recommended for desktop)
+        # - 2: Heavy model (slowest, highest accuracy)
         self.hands = self.mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=config.MAX_NUM_HANDS,
-            model_complexity=0,  # Use lightweight model for CPU
+            model_complexity=config.MODEL_COMPLEXITY,  # 0=Lite, 1=Full, 2=Heavy
             min_detection_confidence=config.MIN_DETECTION_CONFIDENCE,
             min_tracking_confidence=config.MIN_TRACKING_CONFIDENCE
         )
+        
+        # Log model configuration
+        model_names = {0: 'Lite (快速)', 1: 'Full (推荐)', 2: 'Heavy (高精度)'}
+        logger.info(f"MediaPipe 模型: {model_names.get(config.MODEL_COMPLEXITY, 'Unknown')}")
+        logger.info(f"检测阈值: {config.MIN_DETECTION_CONFIDENCE}, 跟踪阈值: {config.MIN_TRACKING_CONFIDENCE}")
         
         # Gesture names (Chinese)
         self.GESTURES = {

@@ -36,6 +36,11 @@ export GESTURE_MIN_DETECTIONS=$(jq -r '.gesture_min_detections // 2' $CONFIG_PAT
 export GESTURE_COOLDOWN=$(jq -r '.gesture_cooldown // 1.5' $CONFIG_PATH)
 
 # ============================================================================
+# MediaPipe Model Configuration
+# ============================================================================
+export MODEL_COMPLEXITY=$(jq -r '.model_complexity // 1' $CONFIG_PATH)
+
+# ============================================================================
 # Gesture Toggles (10 static gestures)
 # ============================================================================
 export ENABLE_OPEN_PALM=$(jq -r '.enable_open_palm // true' $CONFIG_PATH)

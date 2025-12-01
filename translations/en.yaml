@@ -85,6 +85,27 @@ configuration:
       - Range: 0.5-10.0
   
   # ============================================================================
+  # MediaPipe Model Configuration
+  # ============================================================================
+  model_complexity:
+    name: Model Complexity 🎯
+    description: |
+      MediaPipe hand tracking model accuracy (affects precision and performance)
+      
+      Options:
+      - 0 = Lite model: Fastest, lower accuracy ⚡ (for low-end devices)
+      - 1 = Full model: Balanced, high accuracy ⭐ (recommended, default)
+      - 2 = Heavy model: Slowest, highest accuracy 🎯 (for maximum precision)
+      
+      Performance impact:
+      - Lite → Full: ~20-30% accuracy gain, ~30% performance loss
+      - Full → Heavy: ~10-15% accuracy gain, ~50% performance loss
+      
+      Recommended: 1 (Full model)
+      
+      Note: Requires addon rebuild to take effect
+  
+  # ============================================================================
   # Gesture Toggles (10 Static Gestures)
   # ============================================================================
   enable_open_palm:
