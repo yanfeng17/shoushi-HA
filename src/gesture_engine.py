@@ -205,17 +205,17 @@ class GestureEngine:
         
         Detection:
         - Index and middle fingers extended
-        - Thumb, ring, pinky closed
+        - Ring and pinky closed (thumb can be either)
         """
         fingers = self._get_fingers_extended(lm)
         
         # Index and middle extended
         index_middle_extended = fingers[1] and fingers[2]
         
-        # Thumb, ring, pinky closed
-        others_closed = not fingers[0] and not fingers[3] and not fingers[4]
+        # Ring and pinky closed (more lenient - thumb doesn't matter)
+        ring_pinky_closed = not fingers[3] and not fingers[4]
         
-        return index_middle_extended and others_closed
+        return index_middle_extended and ring_pinky_closed
     
     def _is_three_fingers(self, lm) -> bool:
         """

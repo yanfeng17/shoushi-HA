@@ -82,6 +82,14 @@ class GestureBuffer:
             self.current_stable_gesture = None
             return None
         
+        # If gesture changed from current stable gesture, clear history for fast response
+        if (self.current_stable_gesture and 
+            gesture != self.current_stable_gesture and 
+            gesture != 'NONE'):
+            logger.debug(f"手势切换: {self.current_stable_gesture} → {gesture}, 清空缓冲区")
+            self.gesture_history.clear()
+            self.current_stable_gesture = None
+        
         # Add to history
         self.gesture_history.append({
             'gesture': gesture,
