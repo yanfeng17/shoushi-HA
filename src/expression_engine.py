@@ -1,5 +1,6 @@
 import os
 import logging
+import cv2
 import numpy as np
 from typing import Optional, Tuple, Dict
 import config
@@ -75,8 +76,11 @@ class ExpressionEngine:
             - blendshapes_dict contains all 52 blendshape coefficients
         """
         try:
-            # Convert BGR to RGB
-            rgb_frame = frame[:, :, ::-1]
+            # Convert BGR to RGB using cv2.cvtColor (more reliable)
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Ensure contiguous memory layout and correct dtype
+            rgb_frame = np.ascontiguousarray(rgb_frame, dtype=np.uint8)
             
             # Create MediaPipe Image
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
@@ -105,7 +109,14 @@ class ExpressionEngine:
             return expression, confidence, blendshapes_dict
             
         except Exception as e:
-            logger.error(f"Error processing frame: {e}", exc_info=True)
+            # Log error without including large data arrays
+            error_msg = str(e).split('\n')[0]  # Only first line
+            if len(error_msg) > 200:
+                error_msg = error_msg[:200] + "..."
+            
+            logger.error(f"Error processing frame: {error_msg}")
+            logger.debug(f"Frame shape: {frame.shape if frame is not None else 'None'}, "
+                         f"dtype: {frame.dtype if frame is not None else 'None'}")
             return None, 0.0, {}
     
     def _recognize_expression(self, bs: Dict[str, float]) -> Tuple[str, float]:
