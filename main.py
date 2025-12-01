@@ -82,10 +82,14 @@ class GestureBuffer:
             self.current_stable_gesture = None
             return None
         
+        # If detected NONE gesture (hand present but no recognized gesture), skip buffering
+        # This prevents clearing the buffer during gesture transitions
+        if gesture == 'NONE':
+            logger.debug(f"检测到 NONE（过渡状态），保持当前 buffer (大小: {len(self.gesture_history)})")
+            return None
+        
         # If gesture changed from current stable gesture, clear history for fast response
-        if (self.current_stable_gesture and 
-            gesture != self.current_stable_gesture and 
-            gesture != 'NONE'):
+        if self.current_stable_gesture and gesture != self.current_stable_gesture:
             logger.debug(f"手势切换: {self.current_stable_gesture} → {gesture}, 清空缓冲区")
             self.gesture_history.clear()
             self.current_stable_gesture = None
@@ -308,12 +312,10 @@ def main():
             gesture, confidence = gesture_engine.process_frame(frame)
             
             # Check if gesture should be triggered
-            if gesture and gesture != 'NONE':
-                triggered_gesture = gesture_buffer.add_detection(gesture, confidence)
-                if triggered_gesture:
-                    mqtt_client.publish_gesture(triggered_gesture, confidence)
-            else:
-                gesture_buffer.add_detection(None, 0.0)
+            # Note: gesture can be None (no hand), 'NONE' (hand but no gesture), or a gesture name
+            triggered_gesture = gesture_buffer.add_detection(gesture, confidence)
+            if triggered_gesture:
+                mqtt_client.publish_gesture(triggered_gesture, confidence)
             
             # Periodic logging (every 20 frames or 5 seconds)
             current_time = time.time()
