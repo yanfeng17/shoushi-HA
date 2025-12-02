@@ -1,5 +1,5 @@
 name: "MediaPipe 手势识别"
-version: "2.0.0"
+version: "2.1.0"
 slug: mediapipe_gesture_control
 description: "基于 MediaPipe 的实时手势识别系统"
 url: "https://github.com/yanfeng17/shoushi-HA"
@@ -36,20 +36,14 @@ options:
   gesture_min_detections: 2
   gesture_cooldown: 1.5
   
-  # MediaPipe 模型
-  model_complexity: 1
-  
-  # 手势开关
-  enable_open_palm: true
+  # 手势开关（v2.1.0 - Google Gesture Recognizer 内置 7 种手势）
   enable_closed_fist: true
+  enable_open_palm: true
   enable_pointing_up: true
-  enable_ok_sign: true
-  enable_thumbs_up: true
   enable_thumbs_down: true
+  enable_thumbs_up: true
   enable_peace: true
-  enable_three_fingers: false
-  enable_four_fingers: false
-  enable_pinch: false
+  enable_i_love_you: true
   
   # 日志
   log_level: "INFO"
@@ -76,20 +70,14 @@ schema:
   gesture_min_detections: int(2,10)?
   gesture_cooldown: float(0.5,10.0)?
   
-  # MediaPipe 模型
-  model_complexity: list(0|1|2)?
-  
-  # 手势开关
-  enable_open_palm: bool?
+  # 手势开关（v2.1.0 - Google Gesture Recognizer）
   enable_closed_fist: bool?
+  enable_open_palm: bool?
   enable_pointing_up: bool?
-  enable_ok_sign: bool?
-  enable_thumbs_up: bool?
   enable_thumbs_down: bool?
+  enable_thumbs_up: bool?
   enable_peace: bool?
-  enable_three_fingers: bool?
-  enable_four_fingers: bool?
-  enable_pinch: bool?
+  enable_i_love_you: bool?
   
   # 日志
   log_level: list(DEBUG|INFO|WARNING|ERROR)?

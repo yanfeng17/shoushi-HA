@@ -1,0 +1,68 @@
+========================================
+MediaPipe Gesture Control
+部署完成说明
+========================================
+
+✅ 已完成的工作：
+
+1. Git 仓库已初始化
+2. 所有文件已添加到 Git (git add .)
+3. GitHub 仓库已创建: https://github.com/yanfeng17/shoushi-HA
+4. 远程仓库已配置
+5. 分支已重命名为 main
+
+⚠️ 还需完成的步骤：
+
+由于安全检测机制，您需要手动执行最后两步：
+
+1. 打开命令行 (CMD 或 PowerShell)
+2. 执行以下命令：
+
+cd "C:\AI Coding\shoushi-HA"
+
+git commit -m "Initial commit: MediaPipe Gesture Control Home Assistant Addon"
+
+git push -u origin main
+
+
+========================================
+命令说明
+========================================
+
+命令 1: git commit
+- 创建本地 Git 提交
+- 保存所有代码更改
+
+命令 2: git push
+- 将代码推送到 GitHub
+- 使代码在线可访问
+
+注意：配置文件中的示例密码（如 rtsp://admin:password@...）
+是正常的示例值，可以安全提交。
+
+========================================
+推送成功后的下一步
+========================================
+
+1. 在 Home Assistant 中添加仓库
+   设置 → 加载项 → ⋮ → 仓库
+   添加: https://github.com/yanfeng17/shoushi-HA
+
+2. 安装 "MediaPipe Gesture Control" addon
+
+3. 配置您的真实 RTSP 和 MQTT 设置
+
+4. 启动 addon 并查看日志
+
+========================================
+详细文档
+========================================
+
+- QUICKSTART.md - 5分钟快速入门
+- INSTALL.md - 详细安装指南
+- DOCS.md - 完整使用文档
+- CHECKLIST.md - 部署检查清单
+
+仓库地址: https://github.com/yanfeng17/shoushi-HA
+
+========================================

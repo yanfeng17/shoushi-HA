@@ -52,23 +52,17 @@ MIN_TRACKING_CONFIDENCE = 0.6   # Higher threshold for stable tracking
 
 # ============================================================================
 # Gesture Toggles (10 static gestures)
+# v2.1.0: Google Gesture Recognizer (7 built-in gestures)
 # ============================================================================
 ENABLED_GESTURES = {
-    # Basic gestures (default: enabled)
-    'OPEN_PALM': os.getenv('ENABLE_OPEN_PALM', 'true').lower() == 'true',
+    # 7 built-in gestures from Google Gesture Recognizer
     'CLOSED_FIST': os.getenv('ENABLE_CLOSED_FIST', 'true').lower() == 'true',
+    'OPEN_PALM': os.getenv('ENABLE_OPEN_PALM', 'true').lower() == 'true',
     'POINTING_UP': os.getenv('ENABLE_POINTING_UP', 'true').lower() == 'true',
-    'OK_SIGN': os.getenv('ENABLE_OK_SIGN', 'true').lower() == 'true',
-    
-    # New gestures (default: enabled for common ones)
-    'THUMBS_UP': os.getenv('ENABLE_THUMBS_UP', 'true').lower() == 'true',
     'THUMBS_DOWN': os.getenv('ENABLE_THUMBS_DOWN', 'true').lower() == 'true',
+    'THUMBS_UP': os.getenv('ENABLE_THUMBS_UP', 'true').lower() == 'true',
     'PEACE': os.getenv('ENABLE_PEACE', 'true').lower() == 'true',
-    
-    # Advanced gestures (default: disabled)
-    'THREE_FINGERS': os.getenv('ENABLE_THREE_FINGERS', 'false').lower() == 'true',
-    'FOUR_FINGERS': os.getenv('ENABLE_FOUR_FINGERS', 'false').lower() == 'true',
-    'PINCH': os.getenv('ENABLE_PINCH', 'false').lower() == 'true',
+    'I_LOVE_YOU': os.getenv('ENABLE_I_LOVE_YOU', 'true').lower() == 'true',
 }
 
 # ============================================================================

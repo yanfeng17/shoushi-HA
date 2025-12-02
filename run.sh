@@ -38,21 +38,16 @@ export GESTURE_COOLDOWN=$(jq -r '.gesture_cooldown // 1.5' $CONFIG_PATH)
 # ============================================================================
 # MediaPipe Model Configuration
 # ============================================================================
-export MODEL_COMPLEXITY=$(jq -r '.model_complexity // 1' $CONFIG_PATH)
-
 # ============================================================================
-# Gesture Toggles (10 static gestures)
+# Gesture Toggles (v2.1.0 - Google Gesture Recognizer: 7 built-in gestures)
 # ============================================================================
-export ENABLE_OPEN_PALM=$(jq -r '.enable_open_palm // true' $CONFIG_PATH)
 export ENABLE_CLOSED_FIST=$(jq -r '.enable_closed_fist // true' $CONFIG_PATH)
+export ENABLE_OPEN_PALM=$(jq -r '.enable_open_palm // true' $CONFIG_PATH)
 export ENABLE_POINTING_UP=$(jq -r '.enable_pointing_up // true' $CONFIG_PATH)
-export ENABLE_OK_SIGN=$(jq -r '.enable_ok_sign // true' $CONFIG_PATH)
-export ENABLE_THUMBS_UP=$(jq -r '.enable_thumbs_up // true' $CONFIG_PATH)
 export ENABLE_THUMBS_DOWN=$(jq -r '.enable_thumbs_down // true' $CONFIG_PATH)
+export ENABLE_THUMBS_UP=$(jq -r '.enable_thumbs_up // true' $CONFIG_PATH)
 export ENABLE_PEACE=$(jq -r '.enable_peace // true' $CONFIG_PATH)
-export ENABLE_THREE_FINGERS=$(jq -r '.enable_three_fingers // false' $CONFIG_PATH)
-export ENABLE_FOUR_FINGERS=$(jq -r '.enable_four_fingers // false' $CONFIG_PATH)
-export ENABLE_PINCH=$(jq -r '.enable_pinch // false' $CONFIG_PATH)
+export ENABLE_I_LOVE_YOU=$(jq -r '.enable_i_love_you // true' $CONFIG_PATH)
 
 # ============================================================================
 # Logging Configuration

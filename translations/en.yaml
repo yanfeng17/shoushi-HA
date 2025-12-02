@@ -87,26 +87,7 @@ configuration:
   # ============================================================================
   # MediaPipe Model Configuration
   # ============================================================================
-  model_complexity:
-    name: Model Complexity 🎯
-    description: |
-      MediaPipe hand tracking model accuracy (affects precision and performance)
-      
-      Options:
-      - 0 = Lite model: Fastest, lower accuracy ⚡ (for low-end devices)
-      - 1 = Full model: Balanced, high accuracy ⭐ (recommended, default)
-      - 2 = Heavy model: Slowest, highest accuracy 🎯 (for maximum precision)
-      
-      Performance impact:
-      - Lite → Full: ~20-30% accuracy gain, ~30% performance loss
-      - Full → Heavy: ~10-15% accuracy gain, ~50% performance loss
-      
-      Recommended: 1 (Full model)
-      
-      Note: Requires addon rebuild to take effect
-  
-  # ============================================================================
-  # Gesture Toggles (10 Static Gestures)
+  # Gesture Toggles (v2.1.0 - Google Gesture Recognizer: 7 Built-in Gestures)
   # ============================================================================
   enable_open_palm:
     name: Enable "Open Palm" 🖐️
@@ -117,27 +98,18 @@ configuration:
   enable_pointing_up:
     name: Enable "Pointing Up" ☝️
     description: Only index finger extended upward (suitable for "select" or "point" commands)
-  enable_ok_sign:
-    name: Enable "OK Sign" 👌
-    description: Thumb and index finger forming a circle, other fingers extended (suitable for "OK" or "confirm" commands)
-  enable_thumbs_up:
-    name: Enable "Thumbs Up" 👍
-    description: Thumb pointing up, other fingers closed (suitable for "approve" or "increase" commands)
   enable_thumbs_down:
     name: Enable "Thumbs Down" 👎
-    description: Thumb pointing down, other fingers closed (suitable for "disapprove" or "decrease" commands)
+    description: Thumb pointing down, other fingers closed. Google high-accuracy model, 95%+ accuracy (suitable for "disapprove" or "decrease" commands)
+  enable_thumbs_up:
+    name: Enable "Thumbs Up" 👍
+    description: Thumb pointing up, other fingers closed. Google high-accuracy model, 95%+ accuracy (suitable for "approve" or "increase" commands)
   enable_peace:
     name: Enable "Peace/Victory" ✌️
-    description: Index and middle fingers extended in V shape, others closed (suitable for "option 2" or "victory" commands)
-  enable_three_fingers:
-    name: Enable "Three Fingers" 🤟
-    description: Thumb, index, and middle fingers extended, others closed (suitable for "option 3" commands)
-  enable_four_fingers:
-    name: Enable "Four Fingers" 🤚
-    description: Index, middle, ring, and pinky extended, thumb closed (suitable for "option 4" commands)
-  enable_pinch:
-    name: Enable "Pinch" 🤏
-    description: Thumb and index fingertips close together, others closed (suitable for "precise select" or "zoom out" commands)
+    description: Index and middle fingers extended in V shape. Google high-accuracy model, 95%+ accuracy (suitable for "option 2" or "victory" commands)
+  enable_i_love_you:
+    name: Enable "I Love You" 🤟
+    description: Thumb, index, and pinky extended (sign language "I love you"). Google high-accuracy model, 95%+ accuracy (suitable for "love" or "rock" commands)
   
   # ============================================================================
   # Logging Configuration

@@ -32,11 +32,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Create models directory and download Face Landmarker model
-RUN mkdir -p /app/models && \
-    curl -L -o /app/models/face_landmarker.task \
-    https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task && \
-    echo "Face Landmarker model downloaded successfully"
+# Create models directory
+RUN mkdir -p /app/models
+
+# Copy Google Gesture Recognizer model
+COPY models/gesture_recognizer.task /app/models/
 
 # Copy application code
 COPY src/ /app/src/
