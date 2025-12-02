@@ -62,7 +62,7 @@
 1. **添加插件仓库**
    ```
    设置 → 加载项 → 插件商店 → ⋮ → 仓库
-   添加：https://github.com/你的用户名/shoushi-HA
+   添加：https://github.com/yanfeng17/shoushi-HA
    ```
 
 2. **安装插件**
