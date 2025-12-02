@@ -50,8 +50,9 @@ MIN_DETECTION_CONFIDENCE = float(os.getenv('MIN_DETECTION_CONFIDENCE', '0.5'))  
 MIN_TRACKING_CONFIDENCE = float(os.getenv('MIN_TRACKING_CONFIDENCE', '0.5'))    # Google default
 
 # ============================================================================
-# Gesture Toggles (10 static gestures)
+# Gesture Toggles (8 gestures: 7 built-in + 1 custom)
 # v2.1.0: Google Gesture Recognizer (7 built-in gestures)
+# v2.1.3: Added custom OK_SIGN gesture
 # ============================================================================
 ENABLED_GESTURES = {
     # 7 built-in gestures from Google Gesture Recognizer
@@ -62,6 +63,8 @@ ENABLED_GESTURES = {
     'THUMBS_UP': os.getenv('ENABLE_THUMBS_UP', 'true').lower() == 'true',
     'PEACE': os.getenv('ENABLE_PEACE', 'true').lower() == 'true',
     'I_LOVE_YOU': os.getenv('ENABLE_I_LOVE_YOU', 'true').lower() == 'true',
+    # Custom gesture
+    'OK_SIGN': os.getenv('ENABLE_OK_SIGN', 'true').lower() == 'true',
 }
 
 # ============================================================================

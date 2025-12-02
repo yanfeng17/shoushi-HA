@@ -131,6 +131,12 @@ configuration:
   enable_i_love_you:
     name: Enable "I Love You" 🤟
     description: Thumb, index, and pinky extended (sign language "I love you"). Google high-accuracy model, 95%+ accuracy (suitable for "love" or "rock" commands)
+  enable_ok_sign:
+    name: Enable "OK Gesture" 👌
+    description: |
+      Thumb and index fingertips touch to form a circle, other three fingers extended.
+      Custom detection (based on hand landmark geometry), accuracy ~85%.
+      Suitable for "confirm" or "agree" commands.
   
   # ============================================================================
   # Logging Configuration

@@ -22,6 +22,7 @@ class GestureEngine:
     
     v2.1.0: Switched from Hands to GestureRecognizer for higher accuracy.
     v2.1.2: Switched to IMAGE mode for low latency real-time recognition.
+    v2.1.3: Added custom OK gesture detection based on hand landmarks.
     """
     
     def __init__(self):
@@ -38,7 +39,7 @@ class GestureEngine:
             'Unknown': 'NONE'
         }
         
-        # Chinese names
+        # Chinese names (7 Google built-in + 1 custom)
         self.GESTURES = {
             'CLOSED_FIST': '握拳',
             'OPEN_PALM': '张开手掌',
@@ -47,6 +48,7 @@ class GestureEngine:
             'THUMBS_UP': '点赞',
             'PEACE': '剪刀手',
             'I_LOVE_YOU': '我爱你',
+            'OK_SIGN': 'OK手势',  # Custom gesture
             'NONE': '无手势'
         }
         
@@ -81,6 +83,7 @@ class GestureEngine:
     def process_frame(self, frame: np.ndarray) -> Tuple[Optional[str], float]:
         """
         Process a single frame and detect hand gesture (IMAGE mode).
+        Supports Google's 7 built-in gestures + custom OK gesture.
         
         Args:
             frame: BGR image from OpenCV
@@ -114,6 +117,17 @@ class GestureEngine:
             # Map to our gesture name
             our_name = self.GESTURE_MAPPING.get(google_name, 'NONE')
             
+            # If Google didn't recognize (None/Unknown), check for custom gestures
+            if our_name == 'NONE' and results.hand_landmarks:
+                # Get hand landmarks
+                hand_landmarks = results.hand_landmarks[0]
+                
+                # Check for OK gesture
+                if self._is_ok_sign(hand_landmarks):
+                    our_name = 'OK_SIGN'
+                    confidence = 0.85  # Custom gesture confidence
+                    logger.debug(f"检测到自定义手势: OK_SIGN (置信度: {confidence:.2f})")
+            
             # Check if gesture is enabled
             if our_name != 'NONE' and not config.ENABLED_GESTURES.get(our_name, False):
                 logger.debug(f"手势 {our_name} 已检测但未启用")
@@ -125,6 +139,73 @@ class GestureEngine:
         except Exception as e:
             logger.error(f"处理帧时出错: {e}")
             return None, 0.0
+    
+    def _is_ok_sign(self, hand_landmarks) -> bool:
+        """
+        Detect OK sign: thumb tip and index tip are close together,
+        while other three fingers (middle, ring, pinky) are extended.
+        
+        Detection logic:
+        - Distance between thumb tip (landmark 4) and index tip (landmark 8) < 0.05
+        - Middle finger (landmark 12) extended (tip Y < pip Y)
+        - Ring finger (landmark 16) extended
+        - Pinky (landmark 20) extended
+        
+        Args:
+            hand_landmarks: Hand landmarks from MediaPipe (list of 21 landmarks)
+        
+        Returns:
+            True if OK gesture detected, False otherwise
+        """
+        landmarks = hand_landmarks
+        
+        # Get thumb and index fingertips
+        thumb_tip = landmarks[4]
+        index_tip = landmarks[8]
+        
+        # Check if thumb and index tips are close (forming circle)
+        tips_distance = self._distance(thumb_tip, index_tip)
+        
+        if tips_distance > 0.05:  # Not close enough
+            return False
+        
+        # Check if other three fingers are extended
+        # Middle finger
+        middle_tip = landmarks[12]
+        middle_pip = landmarks[10]
+        middle_extended = middle_tip.y < middle_pip.y  # Y increases downward
+        
+        # Ring finger
+        ring_tip = landmarks[16]
+        ring_pip = landmarks[14]
+        ring_extended = ring_tip.y < ring_pip.y
+        
+        # Pinky
+        pinky_tip = landmarks[20]
+        pinky_pip = landmarks[18]
+        pinky_extended = pinky_tip.y < pinky_pip.y
+        
+        # OK sign: tips close + other three fingers extended
+        return middle_extended and ring_extended and pinky_extended
+    
+    @staticmethod
+    def _distance(point1, point2) -> float:
+        """
+        Calculate Euclidean distance between two landmarks.
+        Uses 3D coordinates (x, y, z).
+        
+        Args:
+            point1: First landmark point
+            point2: Second landmark point
+        
+        Returns:
+            Euclidean distance between the two points
+        """
+        return np.sqrt(
+            (point1.x - point2.x) ** 2 +
+            (point1.y - point2.y) ** 2 +
+            (point1.z - point2.z) ** 2
+        )
     
     def release(self):
         """Clean up resources."""

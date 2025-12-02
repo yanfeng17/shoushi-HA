@@ -261,9 +261,9 @@ class VideoStreamProcessor:
 def main():
     """主应用程序循环"""
     logger.info("="*60)
-    logger.info("║ MediaPipe 手势识别 v2.1.2")
+    logger.info("║ MediaPipe 手势识别 v2.1.3")
     logger.info("║ Google Gesture Recognizer (高精度模型)")
-    logger.info("║ BUILD: 2025-12-02-IMAGE-MODE")  # 版本标识
+    logger.info("║ BUILD: 2025-12-02-OK-GESTURE")  # 版本标识
     logger.info("="*60)
     logger.info("启动手势识别系统")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
