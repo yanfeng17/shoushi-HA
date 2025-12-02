@@ -1,5 +1,5 @@
 name: "MediaPipe 手势识别"
-version: "2.1.0"
+version: "2.1.1"
 slug: mediapipe_gesture_control
 description: "基于 MediaPipe 的实时手势识别系统"
 url: "https://github.com/yanfeng17/shoushi-HA"

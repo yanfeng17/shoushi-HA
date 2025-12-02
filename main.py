@@ -181,7 +181,7 @@ class VideoStreamProcessor:
     
     def connect(self) -> bool:
         """
-        Connect to RTSP stream.
+        Connect to RTSP stream with low latency settings.
         """
         try:
             logger.info(f"连接到 RTSP 流: {self.rtsp_url}")
@@ -190,17 +190,24 @@ class VideoStreamProcessor:
             if self.cap is not None:
                 self.cap.release()
             
+            # Set RTSP options for low latency (before opening stream)
+            os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;udp|fflags;nobuffer|flags;low_delay'
+            
             # Create new connection
             self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
             
-            # Set low latency options
+            # Set minimal buffer to reduce latency
             self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            
+            # Disable any internal buffering
+            self.cap.set(cv2.CAP_PROP_FPS, config.TARGET_FPS)
             
             if not self.cap.isOpened():
                 logger.error("无法打开 RTSP 流")
                 return False
             
-            logger.info("成功连接到 RTSP 流")
+            logger.info("成功连接到 RTSP 流（低延迟模式）")
+            logger.info("提示：RTSP 流延迟取决于网络和摄像头设置")
             return True
             
         except Exception as e:
@@ -210,12 +217,18 @@ class VideoStreamProcessor:
     def read_frame(self):
         """
         Read and process next frame from stream.
+        Uses aggressive frame dropping to minimize latency.
         """
         if not self.cap or not self.cap.isOpened():
             return None
         
         try:
-            # Skip frames if configured
+            # Aggressively drop buffered frames to get the latest frame
+            # This reduces RTSP stream latency
+            for _ in range(3):  # Drop 3 old frames
+                self.cap.grab()
+            
+            # Skip frames if configured (for performance)
             for _ in range(self.skip_frames - 1):
                 self.cap.grab()
                 self.frame_count += 1
@@ -248,9 +261,9 @@ class VideoStreamProcessor:
 def main():
     """主应用程序循环"""
     logger.info("="*60)
-    logger.info("║ MediaPipe 手势识别 v2.1.0")
+    logger.info("║ MediaPipe 手势识别 v2.1.1")
     logger.info("║ Google Gesture Recognizer (高精度模型)")
-    logger.info("║ BUILD: 2025-12-02-GOOGLE-MODEL")  # 版本标识
+    logger.info("║ BUILD: 2025-12-02-LOW-LATENCY")  # 版本标识
     logger.info("="*60)
     logger.info("启动手势识别系统")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
@@ -258,6 +271,7 @@ def main():
     logger.info(f"目标 FPS: {config.TARGET_FPS}")
     logger.info(f"画面大小: {config.FRAME_WIDTH}x{config.FRAME_HEIGHT}")
     logger.info(f"跳帧处理: 每 {config.SKIP_FRAMES} 帧处理一次")
+    logger.info(f"低延迟模式: 主动丢弃 3 帧缓冲 + RTSP UDP 传输")
     logger.info("="*60)
     
     # Initialize components
