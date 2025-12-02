@@ -261,9 +261,9 @@ class VideoStreamProcessor:
 def main():
     """主应用程序循环"""
     logger.info("="*60)
-    logger.info("║ MediaPipe 手势识别 v2.1.1")
+    logger.info("║ MediaPipe 手势识别 v2.1.2")
     logger.info("║ Google Gesture Recognizer (高精度模型)")
-    logger.info("║ BUILD: 2025-12-02-LOW-LATENCY")  # 版本标识
+    logger.info("║ BUILD: 2025-12-02-IMAGE-MODE")  # 版本标识
     logger.info("="*60)
     logger.info("启动手势识别系统")
     logger.info(f"RTSP URL: {config.RTSP_URL}")
@@ -271,11 +271,10 @@ def main():
     logger.info(f"目标 FPS: {config.TARGET_FPS}")
     logger.info(f"画面大小: {config.FRAME_WIDTH}x{config.FRAME_HEIGHT}")
     logger.info(f"跳帧处理: 每 {config.SKIP_FRAMES} 帧处理一次")
-    logger.info(f"低延迟模式: 主动丢弃 3 帧缓冲 + RTSP UDP 传输")
+    logger.info(f"IMAGE 模式: 实时低延迟 + 主动丢帧")
     logger.info("="*60)
     
     # Initialize components
-    start_time = time.time()  # For timestamp calculation
     gesture_engine = GestureEngine()
     mqtt_client = MQTTClient()
     gesture_buffer = GestureBuffer()
@@ -318,9 +317,8 @@ def main():
             
             consecutive_failures = 0
             
-            # Process gesture recognition
-            timestamp_ms = int((time.time() - start_time) * 1000)
-            gesture, confidence = gesture_engine.process_frame(frame, timestamp_ms)
+            # Process gesture recognition (IMAGE mode - no timestamp needed)
+            gesture, confidence = gesture_engine.process_frame(frame)
             
             # Check if gesture should be triggered
             # Filter out 'NONE' - treat it as no valid gesture detected

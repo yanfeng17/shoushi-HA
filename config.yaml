@@ -1,5 +1,5 @@
 name: "MediaPipe 手势识别"
-version: "2.1.1"
+version: "2.1.2"
 slug: mediapipe_gesture_control
 description: "基于 MediaPipe 的实时手势识别系统"
 url: "https://github.com/yanfeng17/shoushi-HA"
@@ -31,8 +31,12 @@ options:
   target_fps: 15
   skip_frames: 1
   
+  # MediaPipe 手部检测（v2.1.2 - Google 默认值）
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  
   # 手势识别
-  gesture_confidence_threshold: 0.65
+  gesture_confidence_threshold: 0.5
   gesture_min_detections: 2
   gesture_cooldown: 1.5
   
@@ -65,8 +69,12 @@ schema:
   target_fps: int(5,30)?
   skip_frames: int(1,5)?
   
+  # MediaPipe 手部检测
+  min_detection_confidence: float(0.3,1.0)?
+  min_tracking_confidence: float(0.3,1.0)?
+  
   # 手势识别
-  gesture_confidence_threshold: float(0.5,1.0)?
+  gesture_confidence_threshold: float(0.3,1.0)?
   gesture_min_detections: int(2,10)?
   gesture_cooldown: float(0.5,10.0)?
   

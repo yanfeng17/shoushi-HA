@@ -59,15 +59,36 @@ configuration:
       - Recommended: 1-2
   
   # ============================================================================
+  # MediaPipe Hand Detection Configuration (v2.1.2 - IMAGE mode)
+  # ============================================================================
+  min_detection_confidence:
+    name: Hand Detection Confidence
+    description: |
+      Minimum confidence level to detect hands (0.3-1.0)
+      - 0.5 = Google official default (recommended)
+      - Higher = stricter, fewer false detections, may miss hands
+      - Lower = looser, more sensitive, easier to detect hands
+      - Recommended: 0.5 (balanced accuracy and detection rate)
+  min_tracking_confidence:
+    name: Hand Tracking Confidence
+    description: |
+      Minimum confidence level to track hands (0.3-1.0)
+      - 0.5 = Google official default (recommended)
+      - Higher = stricter, more stable tracking, may lose tracking
+      - Lower = looser, more flexible tracking, easier to maintain tracking
+      - Recommended: 0.5 (balanced stability and flexibility)
+  
+  # ============================================================================
   # Gesture Recognition Configuration
   # ============================================================================
   gesture_confidence_threshold:
-    name: Confidence Threshold
+    name: Gesture Recognition Confidence
     description: |
-      Minimum confidence level to accept a gesture detection (0.5-1.0)
-      - Higher = stricter, fewer false positives, may miss gestures
-      - Lower = looser, more sensitive, may trigger false positives
-      - Recommended: 0.65 (balanced accuracy and sensitivity)
+      Minimum confidence level to accept a gesture recognition (0.3-1.0)
+      - 0.5 = Recommended (balanced accuracy and detection rate)
+      - Higher = stricter, fewer false recognitions, may miss gestures
+      - Lower = looser, more sensitive, may recognize incorrectly
+      - Google model accuracy 95%+, suggest using 0.5-0.6
   gesture_min_detections:
     name: Minimum Detections
     description: |

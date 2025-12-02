@@ -21,6 +21,7 @@ class GestureEngine:
     Uses Google's pre-trained model for 7 built-in gestures.
     
     v2.1.0: Switched from Hands to GestureRecognizer for higher accuracy.
+    v2.1.2: Switched to IMAGE mode for low latency real-time recognition.
     """
     
     def __init__(self):
@@ -61,28 +62,28 @@ class GestureEngine:
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.GestureRecognizerOptions(
             base_options=base_options,
-            running_mode=vision.RunningMode.VIDEO,
+            running_mode=vision.RunningMode.IMAGE,  # IMAGE mode for low latency
             num_hands=config.MAX_NUM_HANDS,
-            min_hand_detection_confidence=config.MIN_DETECTION_CONFIDENCE,
-            min_hand_presence_confidence=config.MIN_TRACKING_CONFIDENCE,
-            min_tracking_confidence=config.MIN_TRACKING_CONFIDENCE
+            min_hand_detection_confidence=0.5,       # Google default
+            min_hand_presence_confidence=0.5,        # Google default
+            min_tracking_confidence=0.5              # Google default
         )
         self.recognizer = vision.GestureRecognizer.create_from_options(options)
         
         logger.info(f"MediaPipe Gesture Recognizer 已初始化")
-        logger.info(f"检测阈值: {config.MIN_DETECTION_CONFIDENCE}, 跟踪阈值: {config.MIN_TRACKING_CONFIDENCE}")
+        logger.info(f"运行模式: IMAGE (实时低延迟)")
+        logger.info(f"检测阈值: 0.5 (Google 官方默认值)")
         
         # Log enabled gestures
         enabled_list = [self.GESTURES[name] for name, enabled in config.ENABLED_GESTURES.items() if enabled]
         logger.info(f"启用的手势: {', '.join(enabled_list) if enabled_list else '无'}")
     
-    def process_frame(self, frame: np.ndarray, timestamp_ms: int) -> Tuple[Optional[str], float]:
+    def process_frame(self, frame: np.ndarray) -> Tuple[Optional[str], float]:
         """
-        Process a single frame and detect hand gesture.
+        Process a single frame and detect hand gesture (IMAGE mode).
         
         Args:
             frame: BGR image from OpenCV
-            timestamp_ms: Timestamp in milliseconds (for video mode)
             
         Returns:
             Tuple of (gesture_name, confidence)
@@ -92,11 +93,14 @@ class GestureEngine:
             # Convert BGR to RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
+            # Ensure contiguous array for MediaPipe
+            rgb_frame = np.ascontiguousarray(rgb_frame)
+            
             # Create MediaPipe Image
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
             
-            # Recognize gesture
-            results = self.recognizer.recognize_for_video(mp_image, timestamp_ms)
+            # Recognize gesture (IMAGE mode - no timestamp needed)
+            results = self.recognizer.recognize(mp_image)
             
             if not results.gestures or len(results.gestures) == 0:
                 logger.debug("未检测到手部")
